@@ -80,7 +80,7 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 		// Process each field against all sources.
 		var provided bool
 		for _, sourcer := range sources {
-			if sourcer == nil {
+			if sourcer == nil || provided {
 				continue
 			}
 

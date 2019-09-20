@@ -68,6 +68,7 @@ func TestRequired(t *testing.T) {
 		}
 		t.Run("struct-missing-fields", f)
 	}
+
 	t.Logf("\tTest: %d\tWhen required values exist and are passed on args.", 3)
 	{
 		f := func(t *testing.T) {
@@ -85,6 +86,7 @@ func TestRequired(t *testing.T) {
 		}
 		t.Run("required-existing-fields-args", f)
 	}
+
 	t.Logf("\tTest: %d\tWhen required values exist and are passed on env.", 4)
 	{
 		f := func(t *testing.T) {

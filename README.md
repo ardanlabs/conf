@@ -25,6 +25,7 @@ As an example, this config struct:
 	type ip struct {
 		Name string `conf:"default:localhost,env:IP_NAME_VAR"`
 		IP   string `conf:"default:127.0.0.0"`
+		Endpoints []string `conf:"default:127.0.0.1:200;127.0.0.1:829"`
 	}
 	type Embed struct {
 		Name     string        `conf:"default:bill"`
@@ -44,14 +45,15 @@ Would produce the following usage output:
 Usage: conf.test [options] [arguments]
 
 OPTIONS
-  --an-int/$CRUD_AN_INT         <int>       (default: 9)
-  --a-string/-s/$CRUD_A_STRING  <string>    (default: B)
-  --bool/$CRUD_BOOL             <bool>
-  --ip-name/$CRUD_IP_NAME_VAR   <string>    (default: localhost)
-  --ip-ip/$CRUD_IP_IP           <string>    (default: 127.0.0.0)
-  --name/$CRUD_NAME             <string>    (default: bill)
-  --e-dur/-d/$CRUD_DURATION     <duration>  (default: 1s)
-  --help/-h
+  --an-int/$TEST_AN_INT              <int>                 (default: 9)
+  --a-string/-s/$TEST_A_STRING       <string>              (default: B)
+  --bool/$TEST_BOOL                  <bool>                
+  --ip-name/$TEST_IP_NAME_VAR        <string>              (default: localhost)
+  --ip-ip/$TEST_IP_IP                <string>              (default: 127.0.0.0)
+  --ip-endpoints/$TEST_IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)
+  --name/$TEST_NAME                  <string>              (default: bill)
+  --e-dur/-d/$TEST_DURATION          <duration>            (default: 1s)
+  --help/-h                          
   display this help message
 ```
 

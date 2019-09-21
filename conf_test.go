@@ -17,8 +17,9 @@ const (
 )
 
 type ip struct {
-	Name string `conf:"default:localhost,env:IP_NAME_VAR"`
-	IP   string `conf:"default:127.0.0.0"`
+	Name      string   `conf:"default:localhost,env:IP_NAME_VAR"`
+	IP        string   `conf:"default:127.0.0.0"`
+	Endpoints []string `conf:"default:127.0.0.1:200;127.0.0.1:829"`
 }
 type Embed struct {
 	Name     string        `conf:"default:bill"`
@@ -117,25 +118,25 @@ func TestParse(t *testing.T) {
 			"default",
 			nil,
 			nil,
-			config{9, "B", false, "", ip{"localhost", "127.0.0.0"}, Embed{"bill", time.Second}},
+			config{9, "B", false, "", ip{"localhost", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"bill", time.Second}},
 		},
 		{
 			"env",
 			map[string]string{"TEST_AN_INT": "1", "TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME_VAR": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
 			nil,
-			config{1, "s", true, "", ip{"local", "127.0.0.0"}, Embed{"andy", time.Minute}},
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"andy", time.Minute}},
 		},
 		{
 			"flag",
 			nil,
 			[]string{"--an-int", "1", "-s", "s", "--bool", "--skip", "skip", "--ip-name", "local", "--name", "andy", "--e-dur", "1m"},
-			config{1, "s", true, "", ip{"local", "127.0.0.0"}, Embed{"andy", time.Minute}},
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"andy", time.Minute}},
 		},
 		{
 			"multi",
 			map[string]string{"TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_IP_NAME_VAR": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
 			[]string{"--an-int", "2", "--bool", "--skip", "skip", "--name", "jack", "-d", "1ms"},
-			config{2, "s", true, "", ip{"local", "127.0.0.0"}, Embed{"jack", time.Millisecond}},
+			config{2, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"jack", time.Millisecond}},
 		},
 	}
 
@@ -293,16 +294,18 @@ func TestUsage(t *testing.T) {
 			want := `Usage: conf.test [options] [arguments]
 
 OPTIONS
-  --an-int/$TEST_AN_INT         <int>       (default: 9)
-  --a-string/-s/$TEST_A_STRING  <string>    (default: B)
-  --bool/$TEST_BOOL             <bool>      
-  --ip-name/$TEST_IP_NAME_VAR   <string>    (default: localhost)
-  --ip-ip/$TEST_IP_IP           <string>    (default: 127.0.0.0)
-  --name/$TEST_NAME             <string>    (default: bill)
-  --e-dur/-d/$TEST_DURATION     <duration>  (default: 1s)
-  --help/-h                     
+  --an-int/$TEST_AN_INT              <int>                 (default: 9)
+  --a-string/-s/$TEST_A_STRING       <string>              (default: B)
+  --bool/$TEST_BOOL                  <bool>                
+  --ip-name/$TEST_IP_NAME_VAR        <string>              (default: localhost)
+  --ip-ip/$TEST_IP_IP                <string>              (default: 127.0.0.0)
+  --ip-endpoints/$TEST_IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)
+  --name/$TEST_NAME                  <string>              (default: bill)
+  --e-dur/-d/$TEST_DURATION          <duration>            (default: 1s)
+  --help/-h                          
   display this help message`
 
+			t.Log(got)
 			gotS := strings.Split(got, "\n")
 			wantS := strings.Split(want, "\n")
 			if diff := cmp.Diff(gotS, wantS); diff != "" {
@@ -378,6 +381,7 @@ func ExampleString() {
 	// --bool=true
 	// --ip-name=localhost
 	// --ip-ip=127.0.0.0
+	// --ip-endpoints=[127.0.0.1:200 127.0.0.1:829]
 	// --name=andy
 	// --e-dur/-d=1m0s
 }

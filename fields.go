@@ -300,7 +300,7 @@ func processField(value string, field reflect.Value) error {
 		}
 		field.SetFloat(val)
 	case reflect.Slice:
-		vals := strings.Split(value, ",")
+		vals := strings.Split(value, ";")
 		sl := reflect.MakeSlice(typ, len(vals), len(vals))
 		for i, val := range vals {
 			err := processField(val, sl.Index(i))
@@ -312,7 +312,7 @@ func processField(value string, field reflect.Value) error {
 	case reflect.Map:
 		mp := reflect.MakeMap(typ)
 		if len(strings.TrimSpace(value)) != 0 {
-			pairs := strings.Split(value, ",")
+			pairs := strings.Split(value, ";")
 			for _, pair := range pairs {
 				kvpair := strings.Split(pair, ":")
 				if len(kvpair) != 2 {

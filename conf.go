@@ -78,16 +78,17 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 		}
 
 		// Process each field against all sources.
-		var provided bool
+		var everProvided bool
 		for _, sourcer := range sources {
 			if sourcer == nil {
 				continue
 			}
 
-			var value string
-			if value, provided = sourcer.Source(field); !provided {
+			value, provided := sourcer.Source(field)
+			if !provided {
 				continue
 			}
+			everProvided = true
 
 			// A value was found so update the struct value with it.
 			if err := processField(value, field.field); err != nil {
@@ -102,7 +103,7 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 
 		// If this key is not provided by any source, check if it was
 		// required to be provided.
-		if !provided && field.options.required {
+		if !everProvided && field.options.required {
 			return fmt.Errorf("required field %s is missing value", field.name)
 		}
 	}

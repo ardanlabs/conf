@@ -87,23 +87,23 @@ func TestRequired(t *testing.T) {
 		t.Run("required-existing-fields-args", f)
 	}
 
-	// t.Logf("\tTest: %d\tWhen required values exist and are passed on env.", 4)
-	// {
-	// 	f := func(t *testing.T) {
-	// 		var cfg struct {
-	// 			TestInt    int `conf:"required, default:1"`
-	// 			TestString string
-	// 			TestBool   bool
-	// 		}
-	// 		os.Setenv("TEST_TEST_INT", "1")
-	// 		err := conf.Parse(nil, "TEST", &cfg)
-	// 		if err != nil {
-	// 			t.Fatalf("\t%s\tShould have parsed the required field on Env : %s", failed, err)
-	// 		}
-	// 		t.Logf("\t%s\tShould have parsed the required field on Env.", success)
-	// 	}
-	// 	t.Run("required-existing-fields-args", f)
-	// }
+	t.Logf("\tTest: %d\tWhen required values exist and are passed on env.", 4)
+	{
+		f := func(t *testing.T) {
+			var cfg struct {
+				TestInt    int `conf:"required, default:1"`
+				TestString string
+				TestBool   bool
+			}
+			os.Setenv("TEST_TEST_INT", "1")
+			err := conf.Parse(nil, "TEST", &cfg)
+			if err != nil {
+				t.Fatalf("\t%s\tShould have parsed the required field on Env : %s", failed, err)
+			}
+			t.Logf("\t%s\tShould have parsed the required field on Env.", success)
+		}
+		t.Run("required-existing-fields-args", f)
+	}
 }
 
 func TestParse(t *testing.T) {

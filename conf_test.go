@@ -34,6 +34,78 @@ type config struct {
 }
 
 // =============================================================================
+func TestRequired(t *testing.T) {
+	t.Logf("\tTest: %d\tWhen required values are missing.", 1)
+	{
+		f := func(t *testing.T) {
+			var cfg struct {
+				TestInt    int `conf:"required, default:1"`
+				TestString string
+				TestBool   bool
+			}
+			err := conf.Parse(nil, "TEST", &cfg)
+			if err == nil {
+				t.Fatalf("\t%s\tShould fail for missing required value.", failed)
+			}
+			t.Logf("\t%s\tShould fail for missing required value : %s", success, err)
+		}
+		t.Run("required-missing-value", f)
+	}
+
+	t.Logf("\tTest: %d\tWhen struct has no fields.", 2)
+	{
+		f := func(t *testing.T) {
+			var cfg struct {
+				testInt    int `conf:"required, default:1"`
+				testString string
+				testBool   bool
+			}
+			err := conf.Parse(nil, "TEST", &cfg)
+			if err == nil {
+				t.Fatalf("\t%s\tShould fail for struct with no exported fields.", failed)
+			}
+			t.Logf("\t%s\tShould fail for struct with no exported fields : %s", success, err)
+		}
+		t.Run("struct-missing-fields", f)
+	}
+
+	t.Logf("\tTest: %d\tWhen required values exist and are passed on args.", 3)
+	{
+		f := func(t *testing.T) {
+			var cfg struct {
+				TestInt    int `conf:"required, default:1"`
+				TestString string
+				TestBool   bool
+			}
+
+			err := conf.Parse([]string{"--test-int", "1"}, "TEST", &cfg)
+			if err != nil {
+				t.Fatalf("\t%s\tShould have parsed the required field on args : %s", failed, err)
+			}
+			t.Logf("\t%s\tShould have parsed the required field on args.", success)
+		}
+		t.Run("required-existing-fields-args", f)
+	}
+
+	t.Logf("\tTest: %d\tWhen required values exist and are passed on env.", 4)
+	{
+		f := func(t *testing.T) {
+			var cfg struct {
+				TestInt    int `conf:"required, default:1"`
+				TestString string
+				TestBool   bool
+			}
+			os.Setenv("TEST_TEST_INT", "1")
+			err := conf.Parse(nil, "TEST", &cfg)
+			if err != nil {
+				t.Fatalf("\t%s\tShould have parsed the required field on Env : %s", failed, err)
+			}
+			t.Logf("\t%s\tShould have parsed the required field on Env.", success)
+		}
+		t.Run("required-existing-fields-args", f)
+	}
+
+}
 
 func TestParse(t *testing.T) {
 	tests := []struct {
@@ -184,40 +256,6 @@ func TestErrors(t *testing.T) {
 				t.Logf("\t%s\tShould NOT be able to accept invalid short tag : %s", success, err)
 			}
 			t.Run("tag-bad-short", f)
-		}
-
-		t.Logf("\tTest: %d\tWhen required values are missing.", 2)
-		{
-			f := func(t *testing.T) {
-				var cfg struct {
-					TestInt    int `conf:"required, default:1"`
-					TestString string
-					TestBool   bool
-				}
-				err := conf.Parse(nil, "TEST", &cfg)
-				if err == nil {
-					t.Fatalf("\t%s\tShould fail for missing required value.", failed)
-				}
-				t.Logf("\t%s\tShould fail for missing required value : %s", success, err)
-			}
-			t.Run("required-missing-value", f)
-		}
-
-		t.Logf("\tTest: %d\tWhen struct has no fields.", 2)
-		{
-			f := func(t *testing.T) {
-				var cfg struct {
-					testInt    int `conf:"required, default:1"`
-					testString string
-					testBool   bool
-				}
-				err := conf.Parse(nil, "TEST", &cfg)
-				if err == nil {
-					t.Fatalf("\t%s\tShould fail for struct with no exported fields.", failed)
-				}
-				t.Logf("\t%s\tShould fail for struct with no exported fields : %s", success, err)
-			}
-			t.Run("struct-missing-fields", f)
 		}
 	}
 }

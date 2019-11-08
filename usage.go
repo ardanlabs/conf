@@ -9,17 +9,17 @@ import (
 	"text/tabwriter"
 )
 
-func fmtUsage(namespace string, fields []field) string {
+func fmtUsage(namespace string, fields []Field) string {
 	var sb strings.Builder
 
-	fields = append(fields, field{
-		name:      "help",
-		boolField: true,
-		field:     reflect.ValueOf(true),
-		flagKey:   []string{"help"},
-		options: fieldOptions{
-			shortFlagChar: 'h',
-			help:          "display this help message",
+	fields = append(fields, Field{
+		Name:      "help",
+		BoolField: true,
+		Field:     reflect.ValueOf(true),
+		FlagKey:   []string{"help"},
+		Options: FieldOptions{
+			ShortFlagChar: 'h',
+			Help:          "display this help message",
 		}})
 
 	_, file := path.Split(os.Args[0])
@@ -32,14 +32,14 @@ func fmtUsage(namespace string, fields []field) string {
 	for _, fld := range fields {
 
 		// Skip printing usage info for fields that just hold arguments.
-		if fld.field.Type() == argsT {
+		if fld.Field.Type() == argsT {
 			continue
 		}
 
 		fmt.Fprintf(w, "  %s", flagUsage(fld))
 
 		// Do not display env vars for help since they aren't respected.
-		if fld.name != "help" {
+		if fld.Name != "help" {
 			fmt.Fprintf(w, "/%s", envUsage(namespace, fld))
 		}
 
@@ -48,7 +48,7 @@ func fmtUsage(namespace string, fields []field) string {
 		// Do not display type info for help because it would show <bool> but our
 		// parsing does not really treat --help as a boolean field. Its presence
 		// always indicates true even if they do --help=false.
-		if fld.name != "help" {
+		if fld.Name != "help" {
 			fmt.Fprintf(w, "\t%s", typeName)
 		}
 
@@ -72,10 +72,10 @@ func fmtUsage(namespace string, fields []field) string {
 // determined, it will simply give the name "value". Slices will be annotated
 // as "<Type>,[Type...]", where "Type" is whatever type name was chosen.
 // (adapted from package flag).
-func getTypeAndHelp(fld *field) (name string, usage string) {
+func getTypeAndHelp(fld *Field) (name string, usage string) {
 
 	// Look for a single-quoted name.
-	usage = fld.options.help
+	usage = fld.Options.Help
 	for i := 0; i < len(usage); i++ {
 		if usage[i] == '\'' {
 			for j := i + 1; j < len(usage); j++ {
@@ -89,8 +89,8 @@ func getTypeAndHelp(fld *field) (name string, usage string) {
 	}
 
 	var isSlice bool
-	if fld.field.IsValid() {
-		t := fld.field.Type()
+	if fld.Field.IsValid() {
+		t := fld.Field.Type()
 
 		// If it's a pointer, we want to deref.
 		if t.Kind() == reflect.Ptr {
@@ -111,7 +111,7 @@ func getTypeAndHelp(fld *field) (name string, usage string) {
 			case reflect.Float32, reflect.Float64:
 				name = "float"
 			case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-				typ := fld.field.Type()
+				typ := fld.Field.Type()
 				if typ.PkgPath() == "time" && typ.Name() == "Duration" {
 					name = "duration"
 				} else {
@@ -137,16 +137,16 @@ func getTypeAndHelp(fld *field) (name string, usage string) {
 	return
 }
 
-func getOptString(fld field) string {
+func getOptString(fld Field) string {
 	opts := make([]string, 0, 3)
-	if fld.options.required {
+	if fld.Options.Required {
 		opts = append(opts, "required")
 	}
-	if fld.options.noprint {
+	if fld.Options.Noprint {
 		opts = append(opts, "noprint")
 	}
-	if fld.options.defaultVal != "" {
-		opts = append(opts, fmt.Sprintf("default: %s", fld.options.defaultVal))
+	if fld.Options.DefaultVal != "" {
+		opts = append(opts, fmt.Sprintf("default: %s", fld.Options.DefaultVal))
 	}
 	if len(opts) > 0 {
 		return fmt.Sprintf("(%s)", strings.Join(opts, `,`))

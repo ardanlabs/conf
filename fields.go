@@ -10,31 +10,32 @@ import (
 	"unicode"
 )
 
-// field maintains information about a field in the configuration struct.
-type field struct {
-	name    string
-	flagKey []string
-	envKey  []string
-	field   reflect.Value
-	options fieldOptions
+// Field maintains information about a field in the configuration struct.
+type Field struct {
+	Name    string
+	FlagKey []string
+	EnvKey  []string
+	Field   reflect.Value
+	Options FieldOptions
 
 	// Important for flag parsing or any other source where
 	// booleans might be treated specially.
-	boolField bool
+	BoolField bool
 }
 
-type fieldOptions struct {
-	help          string
-	defaultVal    string
-	envName       string
-	flagName      string
-	shortFlagChar rune
-	noprint       bool
-	required      bool
+// FieldOptions maintain flag options for a given field.
+type FieldOptions struct {
+	Help          string
+	DefaultVal    string
+	EnvName       string
+	FlagName      string
+	ShortFlagChar rune
+	Noprint       bool
+	Required      bool
 }
 
 // extractFields uses reflection to examine the struct and generate the keys.
-func extractFields(prefix []string, target interface{}) ([]field, error) {
+func extractFields(prefix []string, target interface{}) ([]Field, error) {
 	if prefix == nil {
 		prefix = []string{}
 	}
@@ -49,7 +50,7 @@ func extractFields(prefix []string, target interface{}) ([]field, error) {
 	}
 	targetType := s.Type()
 
-	var fields []field
+	var fields []Field
 
 	for i := 0; i < s.NumField(); i++ {
 		f := s.Field(i)
@@ -113,22 +114,22 @@ func extractFields(prefix []string, target interface{}) ([]field, error) {
 			}
 		default:
 			envKey := fieldKey
-			if fieldOpts.envName != "" {
-				envKey = strings.Split(fieldOpts.envName, "_")
+			if fieldOpts.EnvName != "" {
+				envKey = strings.Split(fieldOpts.EnvName, "_")
 			}
 
 			flagKey := fieldKey
-			if fieldOpts.flagName != "" {
-				flagKey = strings.Split(fieldOpts.flagName, "-")
+			if fieldOpts.FlagName != "" {
+				flagKey = strings.Split(fieldOpts.FlagName, "-")
 			}
 
-			fld := field{
-				name:      fieldName,
-				envKey:    envKey,
-				flagKey:   flagKey,
-				field:     f,
-				options:   fieldOpts,
-				boolField: f.Kind() == reflect.Bool,
+			fld := Field{
+				Name:      fieldName,
+				EnvKey:    envKey,
+				FlagKey:   flagKey,
+				Field:     f,
+				Options:   fieldOpts,
+				BoolField: f.Kind() == reflect.Bool,
 			}
 			fields = append(fields, fld)
 		}
@@ -137,8 +138,8 @@ func extractFields(prefix []string, target interface{}) ([]field, error) {
 	return fields, nil
 }
 
-func parseTag(tagStr string) (fieldOptions, error) {
-	var f fieldOptions
+func parseTag(tagStr string) (FieldOptions, error) {
+	var f FieldOptions
 	if tagStr == "" {
 		return f, nil
 	}
@@ -152,9 +153,9 @@ func parseTag(tagStr string) (fieldOptions, error) {
 		case 1:
 			switch tagProp {
 			case "noprint":
-				f.noprint = true
+				f.Noprint = true
 			case "required":
-				f.required = true
+				f.Required = true
 			}
 		case 2:
 			tagPropVal := strings.TrimSpace(vals[1])
@@ -166,15 +167,15 @@ func parseTag(tagStr string) (fieldOptions, error) {
 				if len([]rune(tagPropVal)) != 1 {
 					return f, fmt.Errorf("short value must be a single rune, got %q", tagPropVal)
 				}
-				f.shortFlagChar = []rune(tagPropVal)[0]
+				f.ShortFlagChar = []rune(tagPropVal)[0]
 			case "default":
-				f.defaultVal = tagPropVal
+				f.DefaultVal = tagPropVal
 			case "env":
-				f.envName = tagPropVal
+				f.EnvName = tagPropVal
 			case "flag":
-				f.flagName = tagPropVal
+				f.FlagName = tagPropVal
 			case "help":
-				f.help = tagPropVal
+				f.Help = tagPropVal
 			}
 		default:
 			// TODO: Do we check for integrity issues here?
@@ -183,7 +184,7 @@ func parseTag(tagStr string) (fieldOptions, error) {
 
 	// Perform a sanity check.
 	switch {
-	case f.required && f.defaultVal != "":
+	case f.Required && f.DefaultVal != "":
 		return f, fmt.Errorf("cannot set both `required` and `default`")
 	}
 

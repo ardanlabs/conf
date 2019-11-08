@@ -29,7 +29,7 @@ type Sourcer interface {
 
 	// Source takes the field key and attempts to locate that key in its
 	// configuration data. Returns true if found with the value.
-	Source(fld field) (string, bool)
+	Source(fld Field) (string, bool)
 }
 
 // Parse parses configuration into the provided struct.
@@ -59,19 +59,19 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 
 		// If the field is supposed to hold the leftover args then copy them in
 		// from the flags source.
-		if field.field.Type() == argsT {
+		if field.Field.Type() == argsT {
 			args := reflect.ValueOf(Args(flag.args))
-			field.field.Set(args)
+			field.Field.Set(args)
 			continue
 		}
 
 		// Set any default value into the struct for this field.
-		if field.options.defaultVal != "" {
-			if err := processField(field.options.defaultVal, field.field); err != nil {
+		if field.Options.DefaultVal != "" {
+			if err := processField(field.Options.DefaultVal, field.Field); err != nil {
 				return &FieldError{
-					fieldName: field.name,
-					typeName:  field.field.Type().String(),
-					value:     field.options.defaultVal,
+					fieldName: field.Name,
+					typeName:  field.Field.Type().String(),
+					value:     field.Options.DefaultVal,
 					err:       err,
 				}
 			}
@@ -91,10 +91,10 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 			everProvided = true
 
 			// A value was found so update the struct value with it.
-			if err := processField(value, field.field); err != nil {
+			if err := processField(value, field.Field); err != nil {
 				return &FieldError{
-					fieldName: field.name,
-					typeName:  field.field.Type().String(),
+					fieldName: field.Name,
+					typeName:  field.Field.Type().String(),
 					value:     value,
 					err:       err,
 				}
@@ -103,8 +103,8 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 
 		// If this key is not provided by any source, check if it was
 		// required to be provided.
-		if !everProvided && field.options.required {
-			return fmt.Errorf("required field %s is missing value", field.name)
+		if !everProvided && field.Options.Required {
+			return fmt.Errorf("required field %s is missing value", field.Name)
 		}
 	}
 
@@ -131,10 +131,10 @@ func String(v interface{}) (string, error) {
 
 	var s strings.Builder
 	for i, fld := range fields {
-		if !fld.options.noprint {
+		if !fld.Options.Noprint {
 			s.WriteString(flagUsage(fld))
 			s.WriteString("=")
-			s.WriteString(fmt.Sprintf("%v", fld.field.Interface()))
+			s.WriteString(fmt.Sprintf("%v", fld.Field.Interface()))
 			if i < len(fields)-1 {
 				s.WriteString("\n")
 			}

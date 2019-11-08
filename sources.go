@@ -35,15 +35,15 @@ func newSourceEnv(namespace string) *env {
 
 // Source implements the confg.Sourcer interface. It returns the stringfied value
 // stored at the specified key from the environment.
-func (e *env) Source(fld field) (string, bool) {
-	k := strings.ToUpper(strings.Join(fld.envKey, `_`))
+func (e *env) Source(fld Field) (string, bool) {
+	k := strings.ToUpper(strings.Join(fld.EnvKey, `_`))
 	v, ok := e.m[k]
 	return v, ok
 }
 
 // envUsage constructs a usage string for the environment variable.
-func envUsage(namespace string, fld field) string {
-	return "$" + strings.ToUpper(namespace) + "_" + strings.ToUpper(strings.Join(fld.envKey, `_`))
+func envUsage(namespace string, fld Field) string {
+	return "$" + strings.ToUpper(namespace) + "_" + strings.ToUpper(strings.Join(fld.EnvKey, `_`))
 }
 
 // =============================================================================
@@ -134,25 +134,25 @@ func newSourceFlag(args []string) (*flag, error) {
 
 // Source implements the confg.Sourcer interface. Returns the stringfied value
 // stored at the specified key from the flag source.
-func (f *flag) Source(fld field) (string, bool) {
-	if fld.options.shortFlagChar != 0 {
-		flagKey := []string{string(fld.options.shortFlagChar)}
+func (f *flag) Source(fld Field) (string, bool) {
+	if fld.Options.ShortFlagChar != 0 {
+		flagKey := []string{string(fld.Options.ShortFlagChar)}
 		k := strings.ToLower(strings.Join(flagKey, `-`))
 		if val, found := f.m[k]; found {
 			return val, found
 		}
 	}
 
-	k := strings.ToLower(strings.Join(fld.flagKey, `-`))
+	k := strings.ToLower(strings.Join(fld.FlagKey, `-`))
 	val, found := f.m[k]
 	return val, found
 }
 
 // flagUsage constructs a usage string for the flag argument.
-func flagUsage(fld field) string {
-	usage := "--" + strings.ToLower(strings.Join(fld.flagKey, `-`))
-	if fld.options.shortFlagChar != 0 {
-		flagKey := []string{string(fld.options.shortFlagChar)}
+func flagUsage(fld Field) string {
+	usage := "--" + strings.ToLower(strings.Join(fld.FlagKey, `-`))
+	if fld.Options.ShortFlagChar != 0 {
+		flagKey := []string{string(fld.Options.ShortFlagChar)}
 		usage += "/-" + strings.ToLower(strings.Join(flagKey, `-`))
 	}
 

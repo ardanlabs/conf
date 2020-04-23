@@ -26,4 +26,4 @@ limitations under the License.
 Package conf provides support for using environmental variables and command
 line arguments for configuration.
 
-Please review the documentation here at [go.dev](https://pkg.go.dev/github.com/ardanlabs/conf?tab=doc)
+All of the documentation can be found on the [go.dev](https://pkg.go.dev/github.com/ardanlabs/conf?tab=doc) website.

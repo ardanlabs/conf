@@ -35,6 +35,7 @@ type Sourcer interface {
 var vrsn string
 var desc string
 
+// SetAppDetails set the version and/or description
 func SetAppDetails(version string, description string) {
 	vrsn = version
 	desc = description

@@ -32,6 +32,22 @@ type Sourcer interface {
 	Source(fld Field) (string, bool)
 }
 
+var vrsn string
+var desc string
+
+func SetAppDetails(version string, description string) {
+	vrsn = version
+	desc = description
+}
+
+// AppDetails provides output to display the version on the command line.
+func AppDetails() string {
+	if vrsn != "" {
+		return fmt.Sprintf("Version: %s\n%s", vrsn, desc)
+	}
+	return ""
+}
+
 // Parse parses configuration into the provided struct.
 func Parse(args []string, namespace string, cfgStruct interface{}, sources ...Sourcer) error {
 

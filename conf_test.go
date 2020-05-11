@@ -385,3 +385,59 @@ func ExampleString() {
 	// --name=andy
 	// --e-dur/-d=1m0s
 }
+
+func TestVersion(t *testing.T) {
+	tests := []struct {
+		name        string
+		version     string
+		description string
+		args        []string
+		want        string
+	}{
+		{
+			name:    "only version",
+			args:    []string{"--version"},
+			version: "v1.0.0",
+			want:    "Version: v1.0.0\n",
+		},
+		{
+			name:    "only version shortcut",
+			args:    []string{"-v"},
+			version: "v1.0.0",
+			want:    "Version: v1.0.0\n",
+		},
+		{
+			name:        "version and description",
+			args:        []string{"-version"},
+			version:     "v1.0.0",
+			description: "Service Description",
+			want:        "Version: v1.0.0\nService Description",
+		},
+		{
+			name:        "version and description shortcut",
+			args:        []string{"-v"},
+			version:     "v1.0.0",
+			description: "Service Description",
+			want:        "Version: v1.0.0\nService Description",
+		},
+		{
+			name: "no version",
+			args: []string{"-v"},
+			want: "",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			conf.SetAppDetails(tt.version, tt.description)
+			var cfg struct{}
+			if err := conf.Parse(tt.args, "APP", &cfg); err != nil {
+				if err == conf.ErrVersionWanted {
+					if diff := cmp.Diff(tt.want, conf.AppDetails()); diff != "" {
+						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+						t.Log(diff)
+					}
+				}
+			}
+		})
+	}
+}

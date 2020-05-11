@@ -21,7 +21,17 @@ func fmtUsage(namespace string, fields []Field) string {
 			ShortFlagChar: 'h',
 			Help:          "display this help message",
 		}})
-
+	if vrsn != "" {
+		fields = append(fields, Field{
+			Name:      "version",
+			BoolField: true,
+			Field:     reflect.ValueOf(true),
+			FlagKey:   []string{"version"},
+			Options: FieldOptions{
+				ShortFlagChar: 'v',
+				Help:          "display version information",
+			}})
+	}
 	_, file := path.Split(os.Args[0])
 	fmt.Fprintf(&sb, "Usage: %s [options] [arguments]\n\n", file)
 
@@ -39,7 +49,7 @@ func fmtUsage(namespace string, fields []Field) string {
 		fmt.Fprintf(w, "  %s", flagUsage(fld))
 
 		// Do not display env vars for help since they aren't respected.
-		if fld.Name != "help" {
+		if fld.Name != "help" && fld.Name != "version" {
 			fmt.Fprintf(w, "/%s", envUsage(namespace, fld))
 		}
 
@@ -48,7 +58,7 @@ func fmtUsage(namespace string, fields []Field) string {
 		// Do not display type info for help because it would show <bool> but our
 		// parsing does not really treat --help as a boolean field. Its presence
 		// always indicates true even if they do --help=false.
-		if fld.Name != "help" {
+		if fld.Name != "help" && fld.Name != "version" {
 			fmt.Fprintf(w, "\t%s", typeName)
 		}
 

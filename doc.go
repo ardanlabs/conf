@@ -93,10 +93,11 @@ Adding the version and description
 	conf.SetAppDetails("v1.0.0", "Service (Copyright 2020)\nThis app does this.")
 	if err := conf.Parse(os.Args[1:], "APP", &cfg); err != nil {
 		if err == conf.ErrVersionWanted {
-			appVersion := conf.AppDetails()
-			if appVersion != "" {
-				fmt.Println(appVersion)
+			details, err := conf.Details("APP", &cfg)
+			if err != nil {
+				return err
 			}
+			fmt.Println(details)
 			os.Exit(0)
 		}
 		fmt.Println("parsing config", err)

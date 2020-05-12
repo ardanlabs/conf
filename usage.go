@@ -9,6 +9,15 @@ import (
 	"text/tabwriter"
 )
 
+func containsField(fields []Field, name string) bool {
+	for i := range fields {
+		if name == fields[i].Name {
+			return true
+		}
+	}
+	return false
+}
+
 func fmtUsage(namespace string, fields []Field) string {
 	var sb strings.Builder
 
@@ -21,7 +30,8 @@ func fmtUsage(namespace string, fields []Field) string {
 			ShortFlagChar: 'h',
 			Help:          "display this help message",
 		}})
-	if vrsn != "" {
+
+	if containsField(fields, versionKey) {
 		fields = append(fields, Field{
 			Name:      "version",
 			BoolField: true,
@@ -32,6 +42,7 @@ func fmtUsage(namespace string, fields []Field) string {
 				Help:          "display version information",
 			}})
 	}
+
 	_, file := path.Split(os.Args[0])
 	fmt.Fprintf(&sb, "Usage: %s [options] [arguments]\n\n", file)
 
@@ -43,6 +54,11 @@ func fmtUsage(namespace string, fields []Field) string {
 
 		// Skip printing usage info for fields that just hold arguments.
 		if fld.Field.Type() == argsT {
+			continue
+		}
+
+		// Do not display version fields SVN and Description
+		if fld.Name == versionKey || fld.Name == descKey {
 			continue
 		}
 

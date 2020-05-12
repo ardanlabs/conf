@@ -32,21 +32,44 @@ type Sourcer interface {
 	Source(fld Field) (string, bool)
 }
 
-var vrsn string
-var desc string
+const versionKey = `SVN`
+const descKey = `Desc`
 
-// SetAppDetails set the version and/or description
-func SetAppDetails(version string, description string) {
-	vrsn = version
-	desc = description
+// Version provides the abitily to add version and description
+type Version struct {
+	SVN  string // String Version
+	Desc string
 }
 
-// AppDetails provides output to display the version on the command line.
-func AppDetails() string {
-	if vrsn != "" {
-		return fmt.Sprintf("Version: %s\n%s", vrsn, desc)
+// Details provides output to display the application version and description on the command line.
+func Details(namespace string, v interface{}) (string, error) {
+	fields, err := extractFields(nil, v)
+	if err != nil {
+		return "", err
 	}
-	return ""
+
+	var str strings.Builder
+
+	for i := range fields {
+		if fields[i].Name == versionKey && fields[i].Field.Len() > 0 {
+			str.WriteString("Version: ")
+			str.WriteString(fields[i].Field.String())
+		} else if fields[i].Name == descKey && fields[i].Field.Len() > 0 {
+			if str.Len() > 0 {
+				str.WriteString("\n")
+			}
+			str.WriteString(fields[i].Field.String())
+			break
+		}
+	}
+
+	/* Not sure if we need this
+	if str.Len() == 0 {
+		return "", fmt.Errorf("version information not set")
+	}
+	*/
+
+	return str.String(), nil
 }
 
 // Parse parses configuration into the provided struct.

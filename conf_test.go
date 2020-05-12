@@ -386,53 +386,189 @@ func ExampleString() {
 	// --e-dur/-d=1m0s
 }
 
-func TestVersion(t *testing.T) {
+type ConfExplicit struct {
+	Version conf.Version
+	Address string
+}
+
+type ConfImplicit struct {
+	conf.Version
+	Address string
+}
+
+func TestVersionExplicit(t *testing.T) {
 	tests := []struct {
-		name        string
-		version     string
-		description string
-		args        []string
-		want        string
+		name    string
+		config  ConfExplicit
+		args    []string
+		want    string
+		wantErr bool
 	}{
 		{
-			name:    "only version",
-			args:    []string{"--version"},
-			version: "v1.0.0",
-			want:    "Version: v1.0.0\n",
+			name: "only version",
+			args: []string{"--version"},
+			config: ConfExplicit{
+				Version: conf.Version{
+					SVN: "v1.0.0",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0",
 		},
 		{
-			name:    "only version shortcut",
-			args:    []string{"-v"},
-			version: "v1.0.0",
-			want:    "Version: v1.0.0\n",
-		},
-		{
-			name:        "version and description",
-			args:        []string{"-version"},
-			version:     "v1.0.0",
-			description: "Service Description",
-			want:        "Version: v1.0.0\nService Description",
-		},
-		{
-			name:        "version and description shortcut",
-			args:        []string{"-v"},
-			version:     "v1.0.0",
-			description: "Service Description",
-			want:        "Version: v1.0.0\nService Description",
-		},
-		{
-			name: "no version",
+			name: "only version shortcut",
 			args: []string{"-v"},
-			want: "",
+			config: ConfExplicit{
+				Version: conf.Version{
+					SVN: "v1.0.0",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0",
+		},
+		{
+			name: "version and description",
+			args: []string{"-version"},
+			config: ConfExplicit{
+				Version: conf.Version{
+					SVN:  "v1.0.0",
+					Desc: "Service Description",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0\nService Description",
+		},
+		{
+			name: "version and description shortcut",
+			args: []string{"-v"},
+			config: ConfExplicit{
+				Version: conf.Version{
+					SVN:  "v1.0.0",
+					Desc: "Service Description",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0\nService Description",
+		},
+		{
+			name: "only description shortcut",
+			args: []string{"-v"},
+			config: ConfExplicit{
+				Version: conf.Version{
+					Desc: "Service Description",
+				},
+			},
+			wantErr: false,
+			want:    "Service Description",
+		},
+		{
+			name:    "no version",
+			args:    []string{"-v"},
+			config:  ConfExplicit{},
+			want:    "",
+			wantErr: false,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			conf.SetAppDetails(tt.version, tt.description)
-			var cfg struct{}
-			if err := conf.Parse(tt.args, "APP", &cfg); err != nil {
+			if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
 				if err == conf.ErrVersionWanted {
-					if diff := cmp.Diff(tt.want, conf.AppDetails()); diff != "" {
+					details, err := conf.Details("APP", &tt.config)
+					if err != nil && !tt.wantErr {
+						t.Errorf("\t%s\t: Error wasn't expected", err)
+					}
+					if diff := cmp.Diff(tt.want, details); diff != "" {
+						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+						t.Log(diff)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestVersionImplicit(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  ConfImplicit
+		args    []string
+		want    string
+		wantErr bool
+	}{
+		{
+			name: "only version",
+			args: []string{"--version"},
+			config: ConfImplicit{
+				Version: conf.Version{
+					SVN: "v1.0.0",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0",
+		},
+		{
+			name: "only version shortcut",
+			args: []string{"-v"},
+			config: ConfImplicit{
+				Version: conf.Version{
+					SVN: "v1.0.0",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0",
+		},
+		{
+			name: "version and description",
+			args: []string{"-version"},
+			config: ConfImplicit{
+				Version: conf.Version{
+					SVN:  "v1.0.0",
+					Desc: "Service Description",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0\nService Description",
+		},
+		{
+			name: "version and description shortcut",
+			args: []string{"-v"},
+			config: ConfImplicit{
+				Version: conf.Version{
+					SVN:  "v1.0.0",
+					Desc: "Service Description",
+				},
+			},
+			wantErr: false,
+			want:    "Version: v1.0.0\nService Description",
+		},
+		{
+			name: "only description shortcut",
+			args: []string{"-v"},
+			config: ConfImplicit{
+				Version: conf.Version{
+					Desc: "Service Description",
+				},
+			},
+			wantErr: false,
+			want:    "Service Description",
+		},
+		{
+			name:    "no version",
+			args:    []string{"-v"},
+			config:  ConfImplicit{},
+			want:    "",
+			wantErr: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
+				if err == conf.ErrVersionWanted {
+					details, err := conf.Details("APP", &tt.config)
+					if err != nil && !tt.wantErr {
+						t.Errorf("\t%s\t: Error wasn't expected", err)
+					}
+					if diff := cmp.Diff(tt.want, details); diff != "" {
 						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
 						t.Log(diff)
 					}

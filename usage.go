@@ -9,6 +9,9 @@ import (
 	"text/tabwriter"
 )
 
+const versionKey = `SVN`
+const descKey = `Desc`
+
 func containsField(fields []Field, name string) bool {
 	for i := range fields {
 		if name == fields[i].Name {

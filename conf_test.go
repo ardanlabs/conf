@@ -473,7 +473,7 @@ func TestVersionExplicit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
 				if err == conf.ErrVersionWanted {
-					details, err := conf.Details("APP", &tt.config)
+					details, err := conf.DisplayVersion("APP", &tt.config)
 					if err != nil && !tt.wantErr {
 						t.Errorf("\t%s\t: Error wasn't expected", err)
 					}
@@ -564,7 +564,7 @@ func TestVersionImplicit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
 				if err == conf.ErrVersionWanted {
-					details, err := conf.Details("APP", &tt.config)
+					details, err := conf.DisplayVersion("APP", &tt.config)
 					if err != nil && !tt.wantErr {
 						t.Errorf("\t%s\t: Error wasn't expected", err)
 					}

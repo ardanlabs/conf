@@ -32,17 +32,14 @@ type Sourcer interface {
 	Source(fld Field) (string, bool)
 }
 
-const versionKey = `SVN`
-const descKey = `Desc`
-
-// Version provides the abitily to add version and description
+// Version provides the abitily to add version and description to the application.
 type Version struct {
-	SVN  string // String Version
+	SVN  string
 	Desc string
 }
 
-// Details provides output to display the application version and description on the command line.
-func Details(namespace string, v interface{}) (string, error) {
+// DisplayVersion provides output to display the application version and description on the command line.
+func DisplayVersion(namespace string, v interface{}) (string, error) {
 	fields, err := extractFields(nil, v)
 	if err != nil {
 		return "", err
@@ -54,7 +51,9 @@ func Details(namespace string, v interface{}) (string, error) {
 		if fields[i].Name == versionKey && fields[i].Field.Len() > 0 {
 			str.WriteString("Version: ")
 			str.WriteString(fields[i].Field.String())
-		} else if fields[i].Name == descKey && fields[i].Field.Len() > 0 {
+			continue
+		}
+		if fields[i].Name == descKey && fields[i].Field.Len() > 0 {
 			if str.Len() > 0 {
 				str.WriteString("\n")
 			}
@@ -62,13 +61,6 @@ func Details(namespace string, v interface{}) (string, error) {
 			break
 		}
 	}
-
-	/* Not sure if we need this
-	if str.Len() == 0 {
-		return "", fmt.Errorf("version information not set")
-	}
-	*/
-
 	return str.String(), nil
 }
 

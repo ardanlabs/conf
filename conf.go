@@ -46,7 +46,6 @@ func DisplayVersion(namespace string, v interface{}) (string, error) {
 	}
 
 	var str strings.Builder
-
 	for i := range fields {
 		if fields[i].Name == versionKey && fields[i].Field.Len() > 0 {
 			str.WriteString("Version: ")

@@ -405,7 +405,7 @@ func TestVersionExplicit(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "only version",
+			name: "version",
 			args: []string{"--version"},
 			config: ConfExplicit{
 				Version: conf.Version{
@@ -416,7 +416,7 @@ func TestVersionExplicit(t *testing.T) {
 			want:    "Version: v1.0.0",
 		},
 		{
-			name: "only version shortcut",
+			name: "vershort",
 			args: []string{"-v"},
 			config: ConfExplicit{
 				Version: conf.Version{
@@ -427,7 +427,7 @@ func TestVersionExplicit(t *testing.T) {
 			want:    "Version: v1.0.0",
 		},
 		{
-			name: "version and description",
+			name: "verdes",
 			args: []string{"-version"},
 			config: ConfExplicit{
 				Version: conf.Version{
@@ -439,7 +439,7 @@ func TestVersionExplicit(t *testing.T) {
 			want:    "Version: v1.0.0\nService Description",
 		},
 		{
-			name: "version and description shortcut",
+			name: "verdesshort",
 			args: []string{"-v"},
 			config: ConfExplicit{
 				Version: conf.Version{
@@ -451,7 +451,7 @@ func TestVersionExplicit(t *testing.T) {
 			want:    "Version: v1.0.0\nService Description",
 		},
 		{
-			name: "only description shortcut",
+			name: "desshort",
 			args: []string{"-v"},
 			config: ConfExplicit{
 				Version: conf.Version{
@@ -462,28 +462,41 @@ func TestVersionExplicit(t *testing.T) {
 			want:    "Service Description",
 		},
 		{
-			name:    "no version",
+			name:    "none",
 			args:    []string{"-v"},
 			config:  ConfExplicit{},
 			want:    "",
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
-				if err == conf.ErrVersionWanted {
-					details, err := conf.DisplayVersion("APP", &tt.config)
-					if err != nil && !tt.wantErr {
-						t.Errorf("\t%s\t: Error wasn't expected", err)
-					}
-					if diff := cmp.Diff(tt.want, details); diff != "" {
-						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
-						t.Log(diff)
+
+	t.Log("Given the need validate version output.")
+	{
+		for i, tt := range tests {
+			t.Logf("\tTest: %d\tWhen using an explict struct.", i)
+			{
+				f := func(t *testing.T) {
+					if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
+						if err == conf.ErrVersionWanted {
+							details, err := conf.DisplayVersion("APP", &tt.config)
+							if err != nil && !tt.wantErr {
+								t.Errorf("\t%s\tShould NOT receive an error : %s", failed, err)
+								return
+							}
+							t.Logf("\t%s\tShould NOT receive an error.", success)
+
+							if diff := cmp.Diff(tt.want, details); diff != "" {
+								t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+								t.Log(diff)
+							}
+							t.Logf("\t%s\tShould match byte for byte the output.", success)
+						}
 					}
 				}
+
+				t.Run(tt.name, f)
 			}
-		})
+		}
 	}
 }
 
@@ -560,20 +573,33 @@ func TestVersionImplicit(t *testing.T) {
 			wantErr: false,
 		},
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
-				if err == conf.ErrVersionWanted {
-					details, err := conf.DisplayVersion("APP", &tt.config)
-					if err != nil && !tt.wantErr {
-						t.Errorf("\t%s\t: Error wasn't expected", err)
-					}
-					if diff := cmp.Diff(tt.want, details); diff != "" {
-						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
-						t.Log(diff)
+
+	t.Log("Given the need validate version output.")
+	{
+		for i, tt := range tests {
+			t.Logf("\tTest: %d\tWhen using an emplicit struct with.", i)
+			{
+				f := func(t *testing.T) {
+					if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
+						if err == conf.ErrVersionWanted {
+							details, err := conf.DisplayVersion("APP", &tt.config)
+							if err != nil && !tt.wantErr {
+								t.Errorf("\t%s\tShould NOT receive an error : %s", failed, err)
+								return
+							}
+							t.Logf("\t%s\tShould NOT receive an error.", success)
+
+							if diff := cmp.Diff(tt.want, details); diff != "" {
+								t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+								t.Log(diff)
+							}
+							t.Logf("\t%s\tShould match byte for byte the output.", success)
+						}
 					}
 				}
+
+				t.Run(tt.name, f)
 			}
-		})
+		}
 	}
 }

@@ -478,14 +478,14 @@ func TestVersionExplicit(t *testing.T) {
 				f := func(t *testing.T) {
 					if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
 						if err == conf.ErrVersionWanted {
-							details, err := conf.DisplayVersion("APP", &tt.config)
+							version, err := conf.VersionString("APP", &tt.config)
 							if err != nil && !tt.wantErr {
 								t.Errorf("\t%s\tShould NOT receive an error : %s", failed, err)
 								return
 							}
 							t.Logf("\t%s\tShould NOT receive an error.", success)
 
-							if diff := cmp.Diff(tt.want, details); diff != "" {
+							if diff := cmp.Diff(tt.want, version); diff != "" {
 								t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
 								t.Log(diff)
 							}
@@ -582,14 +582,14 @@ func TestVersionImplicit(t *testing.T) {
 				f := func(t *testing.T) {
 					if err := conf.Parse(tt.args, "APP", &tt.config); err != nil {
 						if err == conf.ErrVersionWanted {
-							details, err := conf.DisplayVersion("APP", &tt.config)
+							version, err := conf.VersionString("APP", &tt.config)
 							if err != nil && !tt.wantErr {
 								t.Errorf("\t%s\tShould NOT receive an error : %s", failed, err)
 								return
 							}
 							t.Logf("\t%s\tShould NOT receive an error.", success)
 
-							if diff := cmp.Diff(tt.want, details); diff != "" {
+							if diff := cmp.Diff(tt.want, version); diff != "" {
 								t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
 								t.Log(diff)
 							}

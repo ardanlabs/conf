@@ -111,11 +111,11 @@ Then you can set these values at run time for display.
 
 	if err := conf.Parse(os.Args[1:], "APP", &cfg); err != nil {
 		if err == conf.ErrVersionWanted {
-			details, err := conf.DisplayVersion("APP", &cfg)
+			version, err := conf.VersionString("APP", &cfg)
 			if err != nil {
 				return err
 			}
-			fmt.Println(details)
+			fmt.Println(version)
 			return nil
 		}
 		fmt.Println("parsing config", err)

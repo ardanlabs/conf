@@ -38,8 +38,8 @@ type Version struct {
 	Desc string
 }
 
-// DisplayVersion provides output to display the application version and description on the command line.
-func DisplayVersion(namespace string, v interface{}) (string, error) {
+// VersionString provides output to display the application version and description on the command line.
+func VersionString(namespace string, v interface{}) (string, error) {
 	fields, err := extractFields(nil, v)
 	if err != nil {
 		return "", err

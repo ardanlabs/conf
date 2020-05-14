@@ -88,16 +88,35 @@ such as this:
 	arg1 := cfg.Args.Num(1) // "http"
 	arg2 := cfg.Args.Num(2) // "" empty string: not enough arguments
 
-Adding the version and description
+You can add a version with a description by adding the Version type to
+your config type
+
+	type ConfExplicit struct {
+		Version conf.Version
+		Address string
+	}
+
+	type ConfImplicit struct {
+		conf.Version
+		Address string
+	}
+
+Then you can set these values at run time for display.
+
+	cfg := struct {
+		Version: conf.Version{
+			SVN: "v1.0.0",
+			Desc: "Service Description",
+	}
 
 	if err := conf.Parse(os.Args[1:], "APP", &cfg); err != nil {
 		if err == conf.ErrVersionWanted {
-			versionDetails, err := conf.DisplayVersion("APP", &cfg)
+			details, err := conf.DisplayVersion("APP", &cfg)
 			if err != nil {
 				return err
 			}
-			fmt.Println(versionDetails)
-			os.Exit(0)
+			fmt.Println(details)
+			return nil
 		}
 		fmt.Println("parsing config", err)
 	}

@@ -54,6 +54,8 @@ OPTIONS
   --e-dur/-d/$CRUD_DURATION     <duration>  (default: 1s)
   --help/-h
   display this help message
+  --version/-v
+  display version information
 
 The API is a single call to Parse
 
@@ -85,5 +87,19 @@ such as this:
 	arg0 := cfg.Args.Num(0) // "serve"
 	arg1 := cfg.Args.Num(1) // "http"
 	arg2 := cfg.Args.Num(2) // "" empty string: not enough arguments
+
+Adding the version and description
+
+	if err := conf.Parse(os.Args[1:], "APP", &cfg); err != nil {
+		if err == conf.ErrVersionWanted {
+			versionDetails, err := conf.DisplayVersion("APP", &cfg)
+			if err != nil {
+				return err
+			}
+			fmt.Println(versionDetails)
+			os.Exit(0)
+		}
+		fmt.Println("parsing config", err)
+	}
 */
 package conf

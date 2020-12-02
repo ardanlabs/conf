@@ -14,20 +14,6 @@ type JSONSourcer struct {
 	m map[string]string
 }
 
-func (s *JSONSourcer) Source(fld conf.Field) (string, bool) {
-	if fld.Options.ShortFlagChar != 0 {
-		flagKey := fld.Options.ShortFlagChar
-		k := strings.ToLower(string(flagKey))
-		if val, found := s.m[k]; found {
-			return val, found
-		}
-	}
-
-	k := strings.ToLower(strings.Join(fld.FlagKey, `_`))
-	val, found := s.m[k]
-	return val, found
-}
-
 // NewSource returns a conf.Sourcer and, potentially, an error if a
 // read error occurs or the Reader contains an invalid JSON document.
 func NewSource(r io.Reader) (conf.Sourcer, error) {
@@ -59,4 +45,18 @@ func NewSource(r io.Reader) (conf.Sourcer, error) {
 	}
 
 	return &JSONSourcer{m: m}, nil
+}
+
+func (s *JSONSourcer) Source(fld conf.Field) (string, bool) {
+	if fld.Options.ShortFlagChar != 0 {
+		flagKey := fld.Options.ShortFlagChar
+		k := strings.ToLower(string(flagKey))
+		if val, found := s.m[k]; found {
+			return val, found
+		}
+	}
+
+	k := strings.ToLower(strings.Join(fld.FlagKey, `_`))
+	val, found := s.m[k]
+	return val, found
 }

@@ -14,22 +14,8 @@ type YAMLSourcer struct {
 	m map[string]string
 }
 
-func (s *YAMLSourcer) Source(fld conf.Field) (string, bool) {
-	if fld.Options.ShortFlagChar != 0 {
-		flagKey := fld.Options.ShortFlagChar
-		k := strings.ToLower(string(flagKey))
-		if val, found := s.m[k]; found {
-			return val, found
-		}
-	}
-
-	k := strings.ToLower(strings.Join(fld.FlagKey, `_`))
-	val, found := s.m[k]
-	return val, found
-}
-
 // NewSource returns a conf.Sourcer and, potentially, an error if a
-// read error occurs or the Reader contains an invalid JSON document.
+// read error occurs or the Reader contains an invalid YAML document.
 func NewSource(r io.Reader) (conf.Sourcer, error) {
 	if r == nil {
 		return &YAMLSourcer{m: nil}, nil
@@ -59,4 +45,18 @@ func NewSource(r io.Reader) (conf.Sourcer, error) {
 	}
 
 	return &YAMLSourcer{m: m}, nil
+}
+
+func (s *YAMLSourcer) Source(fld conf.Field) (string, bool) {
+	if fld.Options.ShortFlagChar != 0 {
+		flagKey := fld.Options.ShortFlagChar
+		k := strings.ToLower(string(flagKey))
+		if val, found := s.m[k]; found {
+			return val, found
+		}
+	}
+
+	k := strings.ToLower(strings.Join(fld.FlagKey, `_`))
+	val, found := s.m[k]
+	return val, found
 }

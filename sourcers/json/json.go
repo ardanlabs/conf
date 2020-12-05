@@ -1,3 +1,4 @@
+// Package json provides
 package json
 
 import (
@@ -10,30 +11,21 @@ import (
 	"github.com/ardanlabs/conf"
 )
 
-type JSONSourcer struct {
+type Source struct {
 	m map[string]string
 }
 
-// NewSource returns a conf.Sourcer and, potentially, an error if a
-// read error occurs or the Reader contains an invalid JSON document.
-func NewSource(r io.Reader) (conf.Sourcer, error) {
-	if r == nil {
-		return &JSONSourcer{m: nil}, nil
-	}
-
-	src, err := ioutil.ReadAll(r)
+// NewSource returns a Source and, potentially, an error if a read
+// error occurs or the Reader contains an invalid JSON document.
+func NewSource(data []byte) (*Source, error) {
+	config := make(map[string]interface{})
+	err := json.Unmarshal(data, &config)
 	if err != nil {
-		return nil, err
-	}
-
-	tmpMap := make(map[string]interface{})
-	err = json.Unmarshal(src, &tmpMap)
-	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("json.NewSource: %w", err)
 	}
 
 	m := make(map[string]string)
-	for key, value := range tmpMap {
+	for key, value := range config {
 		switch v := value.(type) {
 		case float64:
 			m[key] = strings.TrimRight(fmt.Sprintf("%f", v), "0.")
@@ -44,19 +36,29 @@ func NewSource(r io.Reader) (conf.Sourcer, error) {
 		}
 	}
 
-	return &JSONSourcer{m: m}, nil
+	return &Source{m: m}, nil
 }
 
-func (s *JSONSourcer) Source(fld conf.Field) (string, bool) {
+// SourceFrom ...
+func SourceFrom(src io.Reader) (*Source, error) {
+	data, err := ioutil.ReadAll(src)
+	if err != nil {
+		return nil, fmt.Errorf("json.SourceFrom: %w", err)
+	}
+
+	return NewSource(data)
+}
+
+func (src *Source) Source(fld conf.Field) (string, bool) {
 	if fld.Options.ShortFlagChar != 0 {
 		flagKey := fld.Options.ShortFlagChar
 		k := strings.ToLower(string(flagKey))
-		if val, found := s.m[k]; found {
+		if val, found := src.m[k]; found {
 			return val, found
 		}
 	}
 
 	k := strings.ToLower(strings.Join(fld.FlagKey, `_`))
-	val, found := s.m[k]
+	val, found := src.m[k]
 	return val, found
 }

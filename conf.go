@@ -3,6 +3,7 @@ package conf
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 )
@@ -161,14 +162,43 @@ func String(v interface{}) (string, error) {
 	}
 
 	var s strings.Builder
+	var tempval string
 	for i, fld := range fields {
 		if !fld.Options.Noprint {
 			s.WriteString(flagUsage(fld))
 			s.WriteString("=")
-			s.WriteString(fmt.Sprintf("%v", fld.Field.Interface()))
-			if i < len(fields)-1 {
-				s.WriteString("\n")
+			if fld.Options.Mask {
+				tempval = fmt.Sprintf("%v", fld.Field.Interface())
+				u, err := url.Parse(tempval)
+				if err != nil {
+					// this is probably not a url, simply mask
+					// the value
+					s.WriteString("xxxxxx")
+				} else {
+					// this could be a url, lets parse it,
+					// to mask the password value (if it exists)
+					// we discard the returned password, as we
+					// are going to replace it anyway.
+					if _, exists := u.User.Password(); exists {
+						u.User = url.UserPassword(u.User.Username(), "xxxxxx")
+						s.WriteString(u.String())
+					} else {
+						// in this case, url.Parse() returned
+						// a string back, but it did not contain
+						// a password; so to be safe, return
+						// the masked value, it is needed because url.Parse()
+						// will return the original string back even if its
+						// not a valid URL.
+						s.WriteString("xxxxxx")
+					}
+
+				}
+			} else {
+				s.WriteString(fmt.Sprintf("%v", fld.Field.Interface()))
 			}
+		}
+		if i < len(fields)-1 {
+			s.WriteString("\n")
 		}
 	}
 

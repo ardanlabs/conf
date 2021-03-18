@@ -17,6 +17,7 @@ to customize the flag options.
 	noprint  - Denotes to not include the field in any display string.
 	required - Denotes a value must be provided.
 	help     - Provides a description for the help.
+	mask     - Denotes to mask the field value. If the value is a URL with scheme://user:password@, it will mask only the password
 
 The field name and any parent struct name will be used for the long form of
 the command name unless the name is overridden.

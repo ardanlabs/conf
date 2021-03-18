@@ -603,3 +603,45 @@ func TestVersionImplicit(t *testing.T) {
 		}
 	}
 }
+
+func TestMasking(t *testing.T) {
+	t.Log("Given the need mask passwords.")
+	{
+		//bar result string
+		t.Logf("\tTest: %d\tWhen setting `mask` for a url.", 1)
+		{
+			var result string
+			var cfg struct {
+				DebugHost string `conf:"default:http://user:password@0.0.0.0:4000,mask"`
+			}
+			if err := conf.Parse(nil, "APP", &cfg); err != nil {
+				t.Errorf("\tShould NOT receive an error : %s", err)
+				return
+			}
+			result, err := conf.String(&cfg)
+			if err != nil {
+				t.Errorf("\tShould NOT receive an error : %s", err)
+				return
+			}
+			got := strings.Trim(result, " \n")
+			want := `--debug-host=http://user:xxxxxx@0.0.0.0:4000`
+			if diff := cmp.Diff(got, want); diff != "" {
+				t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+				t.Log(diff)
+			}
+			t.Logf("\t%s\tShould match byte for byte the output.", success)
+		}
+		t.Logf("\tTest: %d\tWhen setting `mask` and `noprint`.", 2)
+		{
+			var cfg struct {
+				DebugHost string `conf:"default:http://user:password@0.0.0.0:4000,mask,noprint"`
+			}
+			if err := conf.Parse(nil, "APP", &cfg); err != nil {
+				t.Logf("\t%s\tShould receive an error : %s", success, err)
+				return
+			} else {
+				t.Errorf("\t%s\tShould NOT succeed.", failed)
+			}
+		}
+	}
+}

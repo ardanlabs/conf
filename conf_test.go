@@ -26,11 +26,13 @@ type Embed struct {
 	Duration time.Duration `conf:"default:1s,flag:e-dur,short:d"`
 }
 type config struct {
-	AnInt   int    `conf:"default:9"`
-	AString string `conf:"default:B,short:s"`
-	Bool    bool
-	Skip    string `conf:"-"`
-	IP      ip
+	AnInt     int    `conf:"default:9"`
+	AString   string `conf:"default:B,short:s"`
+	Bool      bool
+	Skip      string `conf:"-"`
+	IP        ip
+	DebugHost string `conf:"default:http://user:password@0.0.0.0:4000,mask"`
+	Password  string `conf:"default:password,mask"`
 	Embed
 }
 
@@ -118,25 +120,25 @@ func TestParse(t *testing.T) {
 			"default",
 			nil,
 			nil,
-			config{9, "B", false, "", ip{"localhost", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"bill", time.Second}},
+			config{9, "B", false, "", ip{"localhost", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://user:password@0.0.0.0:4000", "password", Embed{"bill", time.Second}},
 		},
 		{
 			"env",
-			map[string]string{"TEST_AN_INT": "1", "TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME_VAR": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
+			map[string]string{"TEST_AN_INT": "1", "TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME_VAR": "local", "TEST_DEBUG_HOST": "http://bill:gopher@0.0.0.0:4000", "TEST_PASSWORD": "gopher", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
 			nil,
-			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"andy", time.Minute}},
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", Embed{"andy", time.Minute}},
 		},
 		{
 			"flag",
 			nil,
-			[]string{"--an-int", "1", "-s", "s", "--bool", "--skip", "skip", "--ip-name", "local", "--name", "andy", "--e-dur", "1m"},
-			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"andy", time.Minute}},
+			[]string{"--an-int", "1", "-s", "s", "--bool", "--skip", "skip", "--ip-name", "local", "--debug-host", "http://bill:gopher@0.0.0.0:4000", "--password", "gopher", "--name", "andy", "--e-dur", "1m"},
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", Embed{"andy", time.Minute}},
 		},
 		{
 			"multi",
-			map[string]string{"TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_IP_NAME_VAR": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
+			map[string]string{"TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_IP_NAME_VAR": "local", "TEST_DEBUG_HOST": "http://bill:gopher@0.0.0.0:4000", "TEST_PASSWORD": "gopher", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
 			[]string{"--an-int", "2", "--bool", "--skip", "skip", "--name", "jack", "-d", "1ms"},
-			config{2, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, Embed{"jack", time.Millisecond}},
+			config{2, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", Embed{"jack", time.Millisecond}},
 		},
 	}
 
@@ -300,6 +302,8 @@ OPTIONS
   --ip-name/$TEST_IP_NAME_VAR        <string>              (default: localhost)
   --ip-ip/$TEST_IP_IP                <string>              (default: 127.0.0.0)
   --ip-endpoints/$TEST_IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)
+  --debug-host/$TEST_DEBUG_HOST      <string>              (default: http://user:password@0.0.0.0:4000)
+  --password/$TEST_PASSWORD          <string>              (default: password)
   --name/$TEST_NAME                  <string>              (default: bill)
   --e-dur/-d/$TEST_DURATION          <duration>            (default: 1s)
   --help/-h                          
@@ -382,6 +386,8 @@ func ExampleString() {
 	// --ip-name=localhost
 	// --ip-ip=127.0.0.0
 	// --ip-endpoints=[127.0.0.1:200 127.0.0.1:829]
+	// --debug-host=http://xxxxxx:xxxxxx@0.0.0.0:4000
+	// --password=xxxxxx
 	// --name=andy
 	// --e-dur/-d=1m0s
 }

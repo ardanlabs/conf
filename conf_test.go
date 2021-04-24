@@ -171,6 +171,50 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParseEmptyNamespace(t *testing.T) {
+	tests := []struct {
+		name string
+		envs map[string]string
+		args []string
+		want config
+	}{
+		{
+			"env",
+			map[string]string{"AN_INT": "1", "A_STRING": "s", "BOOL": "TRUE", "SKIP": "SKIP", "IP_NAME_VAR": "local", "DEBUG_HOST": "http://bill:gopher@0.0.0.0:4000", "PASSWORD": "gopher", "NAME": "andy", "DURATION": "1m"},
+			nil,
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", Embed{"andy", time.Minute}},
+		},
+	}
+
+	t.Log("Given the need to parse basic configuration.")
+	{
+		for i, tt := range tests {
+			t.Logf("\tTest: %d\tWhen checking with arguments %v", i, tt.args)
+			{
+				os.Clearenv()
+				for k, v := range tt.envs {
+					os.Setenv(k, v)
+				}
+
+				f := func(t *testing.T) {
+					var cfg config
+					if err := conf.Parse(tt.args, "", &cfg); err != nil {
+						t.Fatalf("\t%s\tShould be able to Parse arguments : %s.", failed, err)
+					}
+					t.Logf("\t%s\tShould be able to Parse arguments.", success)
+
+					if diff := cmp.Diff(tt.want, cfg); diff != "" {
+						t.Fatalf("\t%s\tShould have properly initialized struct value\n%s", failed, diff)
+					}
+					t.Logf("\t%s\tShould have properly initialized struct value.", success)
+				}
+
+				t.Run(tt.name, f)
+			}
+		}
+	}
+}
+
 func TestParse_Args(t *testing.T) {
 	t.Log("Given the need to capture remaining command line arguments after flags.")
 	{
@@ -262,38 +306,7 @@ func TestErrors(t *testing.T) {
 	}
 }
 
-func TestUsage(t *testing.T) {
-	tt := struct {
-		name string
-		envs map[string]string
-	}{
-		name: "one-example",
-		envs: map[string]string{"TEST_AN_INT": "1", "TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME_VAR": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
-	}
-
-	t.Log("Given the need validate usage output.")
-	{
-		t.Logf("\tTest: %d\tWhen using a basic struct.", 0)
-		{
-			os.Clearenv()
-			for k, v := range tt.envs {
-				os.Setenv(k, v)
-			}
-
-			var cfg config
-			if err := conf.Parse(nil, "TEST", &cfg); err != nil {
-				fmt.Print(err)
-				return
-			}
-
-			got, err := conf.Usage("TEST", &cfg)
-			if err != nil {
-				fmt.Print(err)
-				return
-			}
-
-			got = strings.TrimRight(got, " \n")
-			want := `Usage: conf.test [options] [arguments]
+var withNamespace = `Usage: conf.test [options] [arguments]
 
 OPTIONS
   --an-int/$TEST_AN_INT              <int>                 (default: 9)
@@ -309,44 +322,119 @@ OPTIONS
   --help/-h                          
   display this help message`
 
-			t.Log(got)
-			gotS := strings.Split(got, "\n")
-			wantS := strings.Split(want, "\n")
-			if diff := cmp.Diff(gotS, wantS); diff != "" {
-				t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
-				t.Log(diff)
-			}
-			t.Logf("\t%s\tShould match byte for byte the output.", success)
-		}
+var emptyNamespace = `Usage: conf.test [options] [arguments]
 
-		t.Logf("\tTest: %d\tWhen using a struct with arguments.", 1)
-		{
-			var cfg struct {
-				Port int
-				Args conf.Args
-			}
+OPTIONS
+  --an-int/$AN_INT              <int>                 (default: 9)
+  --a-string/-s/$A_STRING       <string>              (default: B)
+  --bool/$BOOL                  <bool>                
+  --ip-name/$IP_NAME_VAR        <string>              (default: localhost)
+  --ip-ip/$IP_IP                <string>              (default: 127.0.0.0)
+  --ip-endpoints/$IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)
+  --debug-host/$DEBUG_HOST      <string>              (default: http://user:password@0.0.0.0:4000)
+  --password/$PASSWORD          <string>              (default: password)
+  --name/$NAME                  <string>              (default: bill)
+  --e-dur/-d/$DURATION          <duration>            (default: 1s)
+  --help/-h                     
+  display this help message`
 
-			got, err := conf.Usage("TEST", &cfg)
-			if err != nil {
-				fmt.Print(err)
-				return
-			}
-
-			got = strings.TrimRight(got, " \n")
-			want := `Usage: conf.test [options] [arguments]
+var withNamespaceOptions = `Usage: conf.test [options] [arguments]
 
 OPTIONS
   --port/$TEST_PORT  <int>  
   --help/-h          
   display this help message`
 
-			gotS := strings.Split(got, "\n")
-			wantS := strings.Split(want, "\n")
-			if diff := cmp.Diff(gotS, wantS); diff != "" {
-				t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
-				t.Log(diff)
+var emptyNamespaceOptions = `Usage: conf.test [options] [arguments]
+
+OPTIONS
+  --port/$PORT  <int>  
+  --help/-h     
+  display this help message`
+
+func TestUsage(t *testing.T) {
+	tests := []struct {
+		name      string
+		namespace string
+		envs      map[string]string
+		want      string
+		options   string
+	}{
+		{
+			name:      "with-namespace",
+			namespace: "TEST",
+			envs:      map[string]string{"TEST_AN_INT": "1", "TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME_VAR": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
+			want:      withNamespace,
+			options:   withNamespaceOptions,
+		},
+		{
+			name:      "empty-namespace",
+			namespace: "",
+			envs:      map[string]string{"AN_INT": "1", "A_STRING": "s", "BOOL": "TRUE", "SKIP": "SKIP", "IP_NAME_VAR": "local", "NAME": "andy", "DURATION": "1m"},
+			want:      emptyNamespace,
+			options:   emptyNamespaceOptions,
+		},
+	}
+
+	t.Log("Given the need validate usage output.")
+	{
+		for testID, tt := range tests {
+			f := func(t *testing.T) {
+				t.Logf("\tTest: %d\tWhen testing %s", testID, tt.name)
+				{
+					os.Clearenv()
+					for k, v := range tt.envs {
+						os.Setenv(k, v)
+					}
+
+					var cfg config
+					if err := conf.Parse(nil, tt.namespace, &cfg); err != nil {
+						fmt.Print(err)
+						return
+					}
+
+					got, err := conf.Usage(tt.namespace, &cfg)
+					if err != nil {
+						fmt.Print(err)
+						return
+					}
+
+					got = strings.TrimRight(got, " \n")
+					t.Log(got)
+					gotS := strings.Split(got, "\n")
+					wantS := strings.Split(tt.want, "\n")
+					if diff := cmp.Diff(gotS, wantS); diff != "" {
+						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+						t.Log(diff)
+					}
+					t.Logf("\t%s\tShould match byte for byte the output.", success)
+				}
+
+				t.Logf("\tTest: %d\tWhen using a struct with arguments.", 1)
+				{
+					var cfg struct {
+						Port int
+						Args conf.Args
+					}
+
+					got, err := conf.Usage(tt.namespace, &cfg)
+					if err != nil {
+						fmt.Print(err)
+						return
+					}
+
+					got = strings.TrimRight(got, " \n")
+					gotS := strings.Split(got, "\n")
+					wantS := strings.Split(tt.options, "\n")
+					if diff := cmp.Diff(gotS, wantS); diff != "" {
+						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+						t.Log(diff)
+					}
+					t.Logf("\t%s\tShould match byte for byte the output.", success)
+				}
 			}
-			t.Logf("\t%s\tShould match byte for byte the output.", success)
+
+			t.Run(tt.name, f)
 		}
 	}
 }

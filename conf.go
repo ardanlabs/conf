@@ -40,9 +40,10 @@ type Version struct {
 	Desc string
 }
 
-// ParseOSArgs parses the configuration allowing command line
-// arguments to override settings. Function returns ErrHelpWanted
-// for any information to be provided to the user.
+// ParseOSArgs parses the specified config struct. This function will
+// apply the defaults first and then apply environment variables and
+// command line arguments to override the settings. ErrHelpWanted is
+// returned when the --help or --version are detected.
 func ParseOSArgs(prefix string, cfg interface{}) (string, error) {
 	err := Parse(os.Args[1:], prefix, cfg)
 	if err == nil {
@@ -103,7 +104,7 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 
 		// Set any default value into the struct for this field.
 		if field.Options.DefaultVal != "" {
-			if err := processField(field.Options.DefaultVal, field.Field); err != nil {
+			if err := processField(true, field.Options.DefaultVal, field.Field); err != nil {
 				return &FieldError{
 					fieldName: field.Name,
 					typeName:  field.Field.Type().String(),
@@ -127,7 +128,7 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 			everProvided = true
 
 			// A value was found so update the struct value with it.
-			if err := processField(value, field.Field); err != nil {
+			if err := processField(false, value, field.Field); err != nil {
 				return &FieldError{
 					fieldName: field.Name,
 					typeName:  field.Field.Type().String(),

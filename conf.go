@@ -12,75 +12,149 @@ import (
 // ErrInvalidStruct indicates that a configuration struct is not the correct type.
 var ErrInvalidStruct = errors.New("configuration must be a struct pointer")
 
-// A FieldError occurs when an error occurs updating an individual field
-// in the provided struct value.
-type FieldError struct {
-	fieldName string
-	typeName  string
-	value     string
-	err       error
-}
-
-func (err *FieldError) Error() string {
-	return fmt.Sprintf("conf: error assigning to field %s: converting '%s' to type %s. details: %s", err.fieldName, err.value, err.typeName, err.err)
-}
-
-// Sourcer provides the ability to source data from a configuration source.
-// Consider the use of lazy-loading for sourcing large datasets or systems.
-type Sourcer interface {
-
-	// Source takes the field key and attempts to locate that key in its
-	// configuration data. Returns true if found with the value.
-	Source(fld Field) (string, bool)
-}
-
 // Version provides the abitily to add version and description to the application.
 type Version struct {
-	SVN  string
-	Desc string
+	Build string
+	Desc  string
 }
 
-// ParseOSArgs parses the specified config struct. This function will
+// Parsers declare behavior to extend the different parsers that
+// can be used to unmarshal config.
+type Parsers interface {
+	Process(prefix string, cfg interface{}) error
+}
+
+// =============================================================================
+
+// Parse parses the specified config struct. This function will
 // apply the defaults first and then apply environment variables and
-// command line arguments to override the settings. ErrHelpWanted is
+// command line argument overrides to the struct. ErrHelpWanted is
 // returned when the --help or --version are detected.
-func ParseOSArgs(prefix string, cfg interface{}) (string, error) {
-	err := Parse(os.Args[1:], prefix, cfg)
+func Parse(prefix string, cfg interface{}, parsers ...Parsers) (string, error) {
+	var args []string
+	if len(os.Args) > 1 {
+		args = os.Args[1:]
+	}
+
+	for _, parser := range parsers {
+		if err := parser.Process(prefix, cfg); err != nil {
+			return "", fmt.Errorf("external parser: %w", err)
+		}
+	}
+
+	err := parse(args, prefix, cfg)
 	if err == nil {
 		return "", nil
 	}
 
 	switch err {
 	case ErrHelpWanted:
-		usage, err := Usage(prefix, cfg)
+		usage, err := UsageInfo(prefix, cfg)
 		if err != nil {
 			return "", fmt.Errorf("generating config usage: %w", err)
 		}
 		return usage, ErrHelpWanted
 
-	case ErrVersionWanted:
-		version, err := VersionString(prefix, cfg)
+	case errVersionWanted:
+		version, err := VersionInfo(prefix, cfg)
 		if err != nil {
 			return "", fmt.Errorf("generating config version: %w", err)
 		}
+
 		return version, ErrHelpWanted
 	}
 
 	return "", fmt.Errorf("parsing config: %w", err)
 }
 
-// Parse parses configuration into the provided struct.
-func Parse(args []string, namespace string, cfgStruct interface{}, sources ...Sourcer) error {
+// String returns a stringified version of the provided conf-tagged
+// struct, minus any fields tagged with `noprint`.
+func String(v interface{}) (string, error) {
+	fields, err := extractFields(nil, v)
+	if err != nil {
+		return "", err
+	}
 
-	// Create the flag source.
+	var s strings.Builder
+	for i, fld := range fields {
+		if fld.Options.Noprint {
+			continue
+		}
+
+		s.WriteString(flagUsage(fld))
+		s.WriteString("=")
+		v := fmt.Sprintf("%v", fld.Field.Interface())
+
+		switch {
+		case fld.Options.Mask:
+			if u, err := url.Parse(v); err == nil {
+				userPass := u.User.String()
+				if userPass != "" {
+					v = strings.Replace(v, userPass, "xxxxxx:xxxxxx", 1)
+					s.WriteString(v)
+					break
+				}
+			}
+			s.WriteString("xxxxxx")
+
+		default:
+			s.WriteString(v)
+		}
+
+		if i < len(fields)-1 {
+			s.WriteString("\n")
+		}
+	}
+
+	return s.String(), nil
+}
+
+// UsageInfo provides output to display the config usage on the command line.
+func UsageInfo(namespace string, v interface{}) (string, error) {
+	fields, err := extractFields(nil, v)
+	if err != nil {
+		return "", err
+	}
+
+	return fmtUsage(namespace, fields), nil
+}
+
+// VersionInfo provides output to display the application version and description on the command line.
+func VersionInfo(namespace string, v interface{}) (string, error) {
+	fields, err := extractFields(nil, v)
+	if err != nil {
+		return "", err
+	}
+
+	var str strings.Builder
+	for i := range fields {
+		if fields[i].Name == buildKey && fields[i].Field.Len() > 0 {
+			str.WriteString("Version: ")
+			str.WriteString(fields[i].Field.String())
+			continue
+		}
+		if fields[i].Name == descKey && fields[i].Field.Len() > 0 {
+			if str.Len() > 0 {
+				str.WriteString("\n")
+			}
+			str.WriteString(fields[i].Field.String())
+			break
+		}
+	}
+	return str.String(), nil
+}
+
+// =============================================================================
+
+// parse parses configuration into the provided struct.
+func parse(args []string, namespace string, cfgStruct interface{}) error {
+
+	// Create the flag and env sources.
 	flag, err := newSourceFlag(args)
 	if err != nil {
 		return err
 	}
-
-	// Append default sources to any provided list.
-	sources = append(sources, newSourceEnv(namespace))
-	sources = append(sources, flag)
+	sources := []sourcer{newSourceEnv(namespace), flag}
 
 	// Get the list of fields from the configuration struct to process.
 	fields, err := extractFields(nil, cfgStruct)
@@ -148,82 +222,7 @@ func Parse(args []string, namespace string, cfgStruct interface{}, sources ...So
 	return nil
 }
 
-// Usage provides output to display the config usage on the command line.
-func Usage(namespace string, v interface{}) (string, error) {
-	fields, err := extractFields(nil, v)
-	if err != nil {
-		return "", err
-	}
-
-	return fmtUsage(namespace, fields), nil
-}
-
-// VersionString provides output to display the application version and description on the command line.
-func VersionString(namespace string, v interface{}) (string, error) {
-	fields, err := extractFields(nil, v)
-	if err != nil {
-		return "", err
-	}
-
-	var str strings.Builder
-	for i := range fields {
-		if fields[i].Name == versionKey && fields[i].Field.Len() > 0 {
-			str.WriteString("Version: ")
-			str.WriteString(fields[i].Field.String())
-			continue
-		}
-		if fields[i].Name == descKey && fields[i].Field.Len() > 0 {
-			if str.Len() > 0 {
-				str.WriteString("\n")
-			}
-			str.WriteString(fields[i].Field.String())
-			break
-		}
-	}
-	return str.String(), nil
-}
-
-// String returns a stringified version of the provided conf-tagged
-// struct, minus any fields tagged with `noprint`.
-func String(v interface{}) (string, error) {
-	fields, err := extractFields(nil, v)
-	if err != nil {
-		return "", err
-	}
-
-	var s strings.Builder
-	for i, fld := range fields {
-		if fld.Options.Noprint {
-			continue
-		}
-
-		s.WriteString(flagUsage(fld))
-		s.WriteString("=")
-		v := fmt.Sprintf("%v", fld.Field.Interface())
-
-		switch {
-		case fld.Options.Mask:
-			if u, err := url.Parse(v); err == nil {
-				userPass := u.User.String()
-				if userPass != "" {
-					v = strings.Replace(v, userPass, "xxxxxx:xxxxxx", 1)
-					s.WriteString(v)
-					break
-				}
-			}
-			s.WriteString("xxxxxx")
-
-		default:
-			s.WriteString(v)
-		}
-
-		if i < len(fields)-1 {
-			s.WriteString("\n")
-		}
-	}
-
-	return s.String(), nil
-}
+// =============================================================================
 
 // Args holds command line arguments after flags have been parsed.
 type Args []string

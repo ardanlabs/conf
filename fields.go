@@ -10,6 +10,21 @@ import (
 	"unicode"
 )
 
+// A FieldError occurs when an error occurs updating an individual field
+// in the provided struct value.
+type FieldError struct {
+	fieldName string
+	typeName  string
+	value     string
+	err       error
+}
+
+func (err *FieldError) Error() string {
+	return fmt.Sprintf("conf: error assigning to field %s: converting '%s' to type %s. details: %s", err.fieldName, err.value, err.typeName, err.err)
+}
+
+// =============================================================================
+
 // Field maintains information about a field in the configuration struct.
 type Field struct {
 	Name    string

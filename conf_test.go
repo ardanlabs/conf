@@ -772,7 +772,7 @@ func TestYAML(t *testing.T) {
 					os.Args = tt.args
 
 					var cfg yamlConfig
-					if _, err := conf.Parse("TEST", &cfg, yaml.With(tt.yaml)); err != nil {
+					if _, err := conf.Parse("TEST", &cfg, yaml.WithData(tt.yaml)); err != nil {
 						t.Fatalf("\t%s\tShould be able to Parse arguments : %s.", failed, err)
 					}
 					t.Logf("\t%s\tShould be able to Parse arguments.", success)

@@ -17,8 +17,8 @@ type YAML struct {
 	data []byte
 }
 
-// With accepts the yaml document as a slice of bytes.
-func With(data []byte) YAML {
+// WithData accepts the yaml document as a slice of bytes.
+func WithData(data []byte) YAML {
 	return YAML{
 		data: data,
 	}
@@ -31,7 +31,7 @@ func WithReader(r io.Reader) YAML {
 		return YAML{}
 	}
 
-	return With(b.Bytes())
+	return WithData(b.Bytes())
 }
 
 // Process performs the actual processing of the yaml.

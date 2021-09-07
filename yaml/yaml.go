@@ -1,4 +1,5 @@
-package conf
+// Package yaml provides yaml support for conf.
+package yaml
 
 import (
 	"bytes"
@@ -16,21 +17,21 @@ type YAML struct {
 	data []byte
 }
 
-// WithYaml accepts the yaml document as a slice of bytes.
-func WithYaml(data []byte) YAML {
+// With accepts the yaml document as a slice of bytes.
+func With(data []byte) YAML {
 	return YAML{
 		data: data,
 	}
 }
 
-// WithYamlReader accepts a reader to read the yaml.
-func WithYamlReader(r io.Reader) YAML {
+// WithReader accepts a reader to read the yaml.
+func WithReader(r io.Reader) YAML {
 	var b bytes.Buffer
 	if _, err := b.ReadFrom(r); err != nil {
 		return YAML{}
 	}
 
-	return WithYaml(b.Bytes())
+	return With(b.Bytes())
 }
 
 // Process performs the actual processing of the yaml.

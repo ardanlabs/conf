@@ -78,7 +78,8 @@ variable and command line flag overrides.
 		return fmt.Errorf("parsing config: %w", err)
 	}
 
-There is also YAML support.
+There is also YAML support using the yaml package that is part of
+this modeule.
 
 	var yamlData = `
 	a: Easy!
@@ -98,7 +99,7 @@ There is also YAML support.
 
 	const prefix = "APP"
 	var cfg config
-	help, err := conf.Parse(prefix, &cfg, conf.WithYaml([]byte{yamlData}))
+	help, err := conf.Parse(prefix, &cfg, yaml.With([]byte{yamlData}))
 	if err != nil {
 		if errors.Is(err, conf.ErrHelpWanted) {
 			fmt.Println(help)

@@ -106,8 +106,9 @@ func extractFields(prefix []string, target interface{}) ([]Field, error) {
 			f = f.Elem()
 		}
 
-		if f.Kind() == reflect.Struct && setterFrom(f) == nil && textUnmarshaler(f) == nil && binaryUnmarshaler(f) == nil {
-
+		switch {
+		// If we found a struct that can't deserialize itself, drill down, appending fields as we go.
+		case f.Kind() == reflect.Struct && setterFrom(f) == nil && textUnmarshaler(f) == nil && binaryUnmarshaler(f) == nil:
 			// Prefix for any subkeys is the fieldKey, unless it's
 			// anonymous, then it's just the prefix so far.
 			innerPrefix := fieldKey
@@ -121,7 +122,7 @@ func extractFields(prefix []string, target interface{}) ([]Field, error) {
 				return nil, err
 			}
 			fields = append(fields, innerFields...)
-		} else {
+		default:
 			envKey := fieldKey
 			if fieldOpts.EnvName != "" {
 				envKey = strings.Split(fieldOpts.EnvName, "_")

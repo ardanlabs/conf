@@ -17,6 +17,31 @@ const (
 	failed  = "\u2717"
 )
 
+// =============================================================================
+
+// CustomValue provides support for testing a custom value.
+type CustomValue struct {
+	something string
+}
+
+// Set implements the Setter interface
+func (c *CustomValue) Set(data string) error {
+	*c = CustomValue{something: fmt.Sprintf("@%s@", data)}
+	return nil
+}
+
+// String implements the Stringer interface
+func (c CustomValue) String() string {
+	return c.something
+}
+
+// Equal implements the Equal "interface" for go-cmp
+func (c CustomValue) Equal(o CustomValue) bool {
+	return c.something == o.something
+}
+
+// =============================================================================
+
 type ip struct {
 	Name      string   `conf:"default:localhost,env:IP_NAME_VAR"`
 	IP        string   `conf:"default:127.0.0.0"`
@@ -36,26 +61,6 @@ type config struct {
 	Password  string      `conf:"default:password,mask"`
 	Custom    CustomValue `conf:"default:hello"`
 	Embed
-}
-
-type CustomValue struct {
-	something string
-}
-
-// Set implements the Setter interface
-func (c *CustomValue) Set(data string) error {
-	*c = CustomValue{something: fmt.Sprintf("@%s@", data)}
-	return nil
-}
-
-// String implements the Stringer interface
-func (c CustomValue) String() string {
-	return c.something
-}
-
-// Equal implements the Equal "interface" for go-cmp
-func (c CustomValue) Equal(o CustomValue) bool {
-	return c.something == o.something
 }
 
 // =============================================================================

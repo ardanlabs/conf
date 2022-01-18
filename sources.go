@@ -151,9 +151,6 @@ func newSourceFlag(args []string) (*flag, error) {
 				if len(args) > 0 && len(args[0]) > 0 && args[0][0] != '-' {
 					// Doesn't look like a flag. Must be a value.
 					value, args = args[0], args[1:]
-				} else {
-					// We assume this is a boolean flag.
-					value = "true"
 				}
 			}
 
@@ -182,7 +179,7 @@ func (f *flag) source(key string, isBool bool) (string, bool) {
 	}
 
 	// bools are defaulted to true if the flag was present.
-	if val.Value != "true" {
+	if val.Value != "" {
 		f.args = append([]string{val.Value}, f.args...)
 	}
 

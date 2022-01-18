@@ -47,10 +47,12 @@ type ip struct {
 	IP        string   `conf:"default:127.0.0.0"`
 	Endpoints []string `conf:"default:127.0.0.1:200;127.0.0.1:829"`
 }
+
 type Embed struct {
 	Name     string        `conf:"default:bill"`
 	Duration time.Duration `conf:"default:1s,flag:e-dur,short:d"`
 }
+
 type config struct {
 	AnInt     int    `conf:"default:9"`
 	AString   string `conf:"default:B,short:s"`
@@ -737,6 +739,162 @@ func TestVersionImplicit(t *testing.T) {
 	}
 }
 
+func TestParseBoolFlag(t *testing.T) {
+	type config struct {
+		Bool bool `conf:"short:b"`
+		Args conf.Args
+	}
+
+	type args struct {
+		prefix  string
+		cfg     interface{}
+		parsers []conf.Parsers
+	}
+
+	tests := []struct {
+		name    string
+		osags   []string
+		args    args
+		wantErr bool
+		expect  interface{}
+	}{
+		{
+			name:  "long w/o equals",
+			osags: []string{"cmd", "--bool", "extra"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: true,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "short w/o equals",
+			osags: []string{"cmd", "-b", "extra"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: true,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "long w/equals true",
+			osags: []string{"cmd", "--bool=true", "extra"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: true,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "short w/equals true",
+			osags: []string{"cmd", "-b=true", "extra"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: true,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "long w/equals false",
+			osags: []string{"cmd", "--bool=false", "extra"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: false,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "short w/equals false",
+			osags: []string{"cmd", "-b=false", "extra"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: false,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "just long flag",
+			osags: []string{"cmd", "--bool"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: true,
+				Args: conf.Args{},
+			},
+		},
+		{
+			name:  "just short flag",
+			osags: []string{"cmd", "-b"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: true,
+				Args: conf.Args{},
+			},
+		},
+		{
+			name:  "just extra",
+			osags: []string{"cmd", "extra"},
+			args: args{
+				cfg: &config{},
+			},
+			wantErr: false,
+			expect: &config{
+				Bool: false,
+				Args: conf.Args{"extra"},
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			tmpArgs := os.Args
+			t.Cleanup(func() {
+				os.Args = tmpArgs
+			})
+
+			os.Args = tt.osags
+
+			prefix := tt.args.prefix
+			if prefix == "" {
+				prefix = "CONF_TEST_PARSE_BOOL_FLAG"
+			}
+
+			_, err := conf.Parse(prefix, tt.args.cfg, tt.args.parsers...)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("parse bool flag with args: error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			if diff := cmp.Diff(tt.expect, tt.args.cfg); diff != "" {
+				t.Errorf("parse bool flag with args: cfg mismatch (-expect +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 // =============================================================================
 
 var yamlData = `
@@ -750,6 +908,7 @@ type internal struct {
 	RenamedC int   `yaml:"c"`
 	D        []int `yaml:",flow"`
 }
+
 type yamlConfig struct {
 	A string
 	B internal

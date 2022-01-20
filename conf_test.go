@@ -740,9 +740,25 @@ func TestVersionImplicit(t *testing.T) {
 }
 
 func TestParseBoolFlag(t *testing.T) {
+	type Inner struct {
+		Bool2 bool
+	}
+
 	type config struct {
 		Bool bool `conf:"short:b"`
 		Args conf.Args
+	}
+
+	type config2 struct {
+		Bool  bool `conf:"short:b"`
+		Args  conf.Args
+		Inner Inner
+	}
+
+	type config3 struct {
+		Bool bool `conf:"short:b"`
+		Args conf.Args
+		Inner
 	}
 
 	type args struct {
@@ -862,6 +878,30 @@ func TestParseBoolFlag(t *testing.T) {
 			},
 			wantErr: false,
 			expect: &config{
+				Bool: false,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "inner",
+			osags: []string{"cmd", "extra"},
+			args: args{
+				cfg: &config2{},
+			},
+			wantErr: false,
+			expect: &config2{
+				Bool: false,
+				Args: conf.Args{"extra"},
+			},
+		},
+		{
+			name:  "embedded",
+			osags: []string{"cmd", "extra"},
+			args: args{
+				cfg: &config3{},
+			},
+			wantErr: false,
+			expect: &config3{
 				Bool: false,
 				Args: conf.Args{"extra"},
 			},

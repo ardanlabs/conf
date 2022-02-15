@@ -2,14 +2,14 @@ version: 2
 jobs:
   build:
     machine:
-      image: ubuntu-1604:201903-01
+      image: ubuntu-2004:202010-01
     steps:
       - checkout
       - run:
-          name: Install Go 1.16.2
+          name: Install Go 1.17
           command: |
               sudo rm -rf /usr/local/go
-              wget -O go.tgz https://dl.google.com/go/go1.16.2.linux-amd64.tar.gz
+              wget -O go.tgz https://dl.google.com/go/go1.17.linux-amd64.tar.gz
               sudo tar -C /usr/local -xzf go.tgz
               which go
               go version
@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Run staticheck
           command: |
-              wget -O staticcheck.tgz https://github.com/dominikh/go-tools/releases/download/2020.2.1/staticcheck_linux_amd64.tar.gz
+              wget -O staticcheck.tgz https://github.com/dominikh/go-tools/releases/download/2021.1.2/staticcheck_linux_amd64.tar.gz
               sudo tar -xzf staticcheck.tgz
               ./staticcheck/staticcheck --version
               ./staticcheck/staticcheck ./...

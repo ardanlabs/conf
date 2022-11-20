@@ -14,6 +14,10 @@ jobs:
               which go
               go version
       - run:
+          name: Run Download
+          command: |
+              go mod download
+      - run:
           name: Run staticheck
           command: |
               go install honnef.co/go/tools/cmd/staticcheck@latest

@@ -620,7 +620,7 @@ func TestVersionExplicit(t *testing.T) {
 	t.Log("Given the need validate version output.")
 	{
 		for i, tt := range tests {
-			t.Logf("\tTest: %d\tWhen using an explict struct.", i)
+			t.Logf("\tTest: %d\tWhen using an explicit struct.", i)
 			{
 				f := func(t *testing.T) {
 					os.Args = tt.args

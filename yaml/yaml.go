@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 // YAML provides support for unmarshaling YAML into the applications

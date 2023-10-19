@@ -193,7 +193,7 @@ func parse(args []string, namespace string, cfgStruct interface{}) error {
 			}
 		}
 
-		// Flag to check is any value is provided.
+		// Flag to check if any value is provided.
 		provided := false
 
 		// Process each field against all sources.

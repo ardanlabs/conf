@@ -207,8 +207,6 @@ func parse(args []string, namespace string, cfgStruct interface{}) error {
 				continue
 			}
 
-			provided = provided || ok
-
 			// A value was found so update the struct value with it.
 			if err := processField(false, value, field.Field); err != nil {
 				return &FieldError{
@@ -218,6 +216,8 @@ func parse(args []string, namespace string, cfgStruct interface{}) error {
 					err:       err,
 				}
 			}
+
+			provided = true
 		}
 
 		// If the field is marked 'required', check if no value was provided.

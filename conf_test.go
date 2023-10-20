@@ -85,6 +85,66 @@ func TestRequired(t *testing.T) {
 		t.Run("required-missing-value", f)
 	}
 
+	t.Logf("\tTest: %d\tWhen required env integer is zero.", 1)
+	{
+		f := func(t *testing.T) {
+			os.Args = []string{"conf.test"}
+			os.Setenv("TEST_TEST_INT", "0")
+
+			var cfg struct {
+				TestInt    int `conf:"required"`
+				TestString string
+				TestBool   bool
+			}
+			_, err := conf.Parse("TEST", &cfg)
+			if err != nil {
+				t.Fatalf("\t%s\tShould have parsed the required zero env integer : %s", failed, err)
+			}
+			t.Logf("\t%s\tShould have parsed the required zero env integer.", success)
+		}
+		t.Run("required-env-integer-zero", f)
+	}
+
+	t.Logf("\tTest: %d\tWhen required env string is empty.", 1)
+	{
+		f := func(t *testing.T) {
+			os.Args = []string{"conf.test"}
+			os.Setenv("TEST_TEST_STRING", "")
+
+			var cfg struct {
+				TestInt    int
+				TestString string `conf:"required"`
+				TestBool   bool
+			}
+			_, err := conf.Parse("TEST", &cfg)
+			if err != nil {
+				t.Fatalf("\t%s\tShould have parsed the required empty env string : %s", failed, err)
+			}
+			t.Logf("\t%s\tShould have parsed the required empty env string.", success)
+		}
+		t.Run("required-env-string-empty", f)
+	}
+
+	t.Logf("\tTest: %d\tWhen required env boolean is false.", 1)
+	{
+		f := func(t *testing.T) {
+			os.Args = []string{"conf.test"}
+			os.Setenv("TEST_TEST_BOOL", "false")
+
+			var cfg struct {
+				TestInt    int
+				TestString string
+				TestBool   bool `conf:"required"`
+			}
+			_, err := conf.Parse("TEST", &cfg)
+			if err != nil {
+				t.Fatalf("\t%s\tShould have parsed the required false env boolean : %s", failed, err)
+			}
+			t.Logf("\t%s\tShould have parsed the required false env boolean.", success)
+		}
+		t.Run("required-env-boolean-false", f)
+	}
+
 	t.Logf("\tTest: %d\tWhen struct has no fields.", 2)
 	{
 		f := func(t *testing.T) {

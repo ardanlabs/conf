@@ -551,10 +551,8 @@ func TestUsage(t *testing.T) {
 
 func ExampleString() {
 	tt := struct {
-		name string
 		envs map[string]string
 	}{
-		name: "one-example",
 		envs: map[string]string{"TEST_AN_INT": "1", "TEST_S": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
 	}
 
@@ -997,7 +995,7 @@ func TestParseBoolFlag(t *testing.T) {
 
 // =============================================================================
 
-var yamlData = `
+var yamlData1 = `
 a: Easy!
 b:
   c: 2
@@ -1005,16 +1003,33 @@ b:
 c: 2000-01-01T10:17:00Z
 `
 
+var yamlData2 = `
+a: Easy!
+b:
+  c: 2
+  d: [3, 4]
+c: 2000-01-01T10:17:00Z
+d: jack
+`
+
 type internal struct {
 	RenamedC int   `yaml:"c"`
 	D        []int `yaml:",flow"`
 }
 
-type yamlConfig struct {
+type yamlConfig1 struct {
 	A string
 	B internal
 	E string    `conf:"default:postgres"`
 	C time.Time `conf:"default:2023-06-16T10:17:00Z"`
+}
+
+type yamlConfig2 struct {
+	A string
+	B internal
+	E string    `conf:"default:postgres"`
+	C time.Time `conf:"default:2023-06-16T10:17:00Z"`
+	D string    `conf:"required"`
 }
 
 func TestYAML(t *testing.T) {
@@ -1025,28 +1040,32 @@ func TestYAML(t *testing.T) {
 		yaml []byte
 		envs map[string]string
 		args []string
-		want yamlConfig
+		got  any
+		exp  any
 	}{
 		{
 			"default",
-			[]byte(yamlData),
+			[]byte(yamlData1),
 			nil,
 			nil,
-			yamlConfig{A: "Easy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts},
+			&yamlConfig1{},
+			&yamlConfig1{A: "Easy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts},
 		},
 		{
 			"env",
-			[]byte(yamlData),
-			map[string]string{"TEST_A": "EnvEasy!"},
+			[]byte(yamlData2),
+			map[string]string{"TEST_A": "EnvEasy!", "TEST_D": "jill"},
 			nil,
-			yamlConfig{A: "EnvEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts},
+			&yamlConfig2{},
+			&yamlConfig2{A: "EnvEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: "jill"},
 		},
 		{
 			"flag",
-			[]byte(yamlData),
+			[]byte(yamlData2),
 			nil,
-			[]string{"conf.test", "--a", "FlagEasy!"},
-			yamlConfig{A: "FlagEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts},
+			[]string{"conf.test", "--a", "FlagEasy!", "--d", "bill"},
+			&yamlConfig2{},
+			&yamlConfig2{A: "FlagEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: "bill"},
 		},
 	}
 
@@ -1063,13 +1082,12 @@ func TestYAML(t *testing.T) {
 				f := func(t *testing.T) {
 					os.Args = tt.args
 
-					var cfg yamlConfig
-					if _, err := conf.Parse("TEST", &cfg, yaml.WithData(tt.yaml)); err != nil {
+					if _, err := conf.Parse("TEST", tt.got, yaml.WithData(tt.yaml)); err != nil {
 						t.Fatalf("\t%s\tShould be able to Parse arguments : %s.", failed, err)
 					}
 					t.Logf("\t%s\tShould be able to Parse arguments.", success)
 
-					if diff := cmp.Diff(tt.want, cfg); diff != "" {
+					if diff := cmp.Diff(tt.exp, tt.got); diff != "" {
 						t.Fatalf("\t%s\tShould have properly initialized struct value\n%s", failed, diff)
 					}
 					t.Logf("\t%s\tShould have properly initialized struct value.", success)

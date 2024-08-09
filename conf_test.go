@@ -997,8 +997,8 @@ func TestParseBoolFlag(t *testing.T) {
 // =============================================================================
 
 type internal struct {
-	C int   `yaml:"c"`
-	D []int `yaml:",flow"`
+	RenamedC int   `yaml:"c"`
+	D        []int `yaml:",flow"`
 }
 
 var yamlData1 = `
@@ -1078,7 +1078,7 @@ func TestYAML(t *testing.T) {
 			nil,
 			nil,
 			&yamlConfig1{},
-			&yamlConfig1{A: "Easy!", B: internal{C: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS},
+			&yamlConfig1{A: "Easy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS},
 		},
 		{
 			"env",
@@ -1086,7 +1086,7 @@ func TestYAML(t *testing.T) {
 			map[string]string{"TEST_A": "EnvEasy!", "TEST_G": "2000-01-01T10:17:00Z", "TEST_I": "2000-01-01T10:17:00Z"},
 			nil,
 			&yamlConfig2{},
-			&yamlConfig2{A: "EnvEasy!", B: internal{C: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS, I: oTS},
+			&yamlConfig2{A: "EnvEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS, I: oTS},
 		},
 		{
 			"flag",
@@ -1094,7 +1094,7 @@ func TestYAML(t *testing.T) {
 			nil,
 			[]string{"conf.test", "--a", "FlagEasy!", "--g", "2000-01-01T10:17:00Z", "--i", "2000-01-01T10:17:00Z"},
 			&yamlConfig2{},
-			&yamlConfig2{A: "FlagEasy!", B: internal{C: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS, I: oTS},
+			&yamlConfig2{A: "FlagEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS, I: oTS},
 		},
 		{
 			"notzero",

@@ -1009,7 +1009,7 @@ b:
   c: 2
   d: [3, 4]
 c: 2000-01-01T10:17:00Z
-d: jack
+d: 2000-01-01T10:17:00Z
 `
 
 type internal struct {
@@ -1029,7 +1029,7 @@ type yamlConfig2 struct {
 	B internal
 	E string    `conf:"default:postgres"`
 	C time.Time `conf:"default:2023-06-16T10:17:00Z"`
-	D string    `conf:"required"`
+	D time.Time `conf:"required"`
 }
 
 func TestYAML(t *testing.T) {
@@ -1054,18 +1054,18 @@ func TestYAML(t *testing.T) {
 		{
 			"env",
 			[]byte(yamlData2),
-			map[string]string{"TEST_A": "EnvEasy!", "TEST_D": "jill"},
+			map[string]string{"TEST_A": "EnvEasy!", "TEST_D": "2000-01-01T10:17:00Z"},
 			nil,
 			&yamlConfig2{},
-			&yamlConfig2{A: "EnvEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: "jill"},
+			&yamlConfig2{A: "EnvEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: ts},
 		},
 		{
 			"flag",
 			[]byte(yamlData2),
 			nil,
-			[]string{"conf.test", "--a", "FlagEasy!", "--d", "bill"},
+			[]string{"conf.test", "--a", "FlagEasy!", "--d", "2000-01-01T10:17:00Z"},
 			&yamlConfig2{},
-			&yamlConfig2{A: "FlagEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: "bill"},
+			&yamlConfig2{A: "FlagEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: ts},
 		},
 	}
 

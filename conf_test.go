@@ -1,6 +1,7 @@
 package conf_test
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -995,45 +996,73 @@ func TestParseBoolFlag(t *testing.T) {
 
 // =============================================================================
 
+type internal struct {
+	C int   `yaml:"c"`
+	D []int `yaml:",flow"`
+}
+
 var yamlData1 = `
 a: Easy!
 b:
   c: 2
   d: [3, 4]
-c: 2000-01-01T10:17:00Z
+g: 2000-01-01T10:17:00Z
 `
+
+type yamlConfig1 struct {
+	A string
+	B internal
+	E string    `conf:"default:postgres"`
+	F time.Time `conf:"default:2023-06-16T10:17:00Z"`
+	G time.Time `conf:"notzero"`
+}
 
 var yamlData2 = `
 a: Easy!
 b:
   c: 2
   d: [3, 4]
-c: 2000-01-01T10:17:00Z
-d: 2000-01-01T10:17:00Z
+g: 2000-01-01T10:17:00Z
+i: 2000-01-01T10:17:00Z
 `
-
-type internal struct {
-	RenamedC int   `yaml:"c"`
-	D        []int `yaml:",flow"`
-}
-
-type yamlConfig1 struct {
-	A string
-	B internal
-	E string    `conf:"default:postgres"`
-	C time.Time `conf:"default:2023-06-16T10:17:00Z"`
-}
 
 type yamlConfig2 struct {
 	A string
 	B internal
 	E string    `conf:"default:postgres"`
-	C time.Time `conf:"default:2023-06-16T10:17:00Z"`
-	D time.Time `conf:"required"`
+	F time.Time `conf:"default:2023-06-16T10:17:00Z"`
+	G time.Time `conf:"notzero"`
+	I time.Time `conf:"required"`
+}
+
+var yamlData31 = `
+a: Easy!
+b:
+  c: 2
+  d: [3, 4]
+i: 2000-01-01T10:17:00Z
+`
+
+var yamlData32 = `
+a: Easy!
+b:
+  c: 2
+  d: [3, 4]
+g: 2000-01-01T10:17:00Z
+`
+
+type yamlConfig3 struct {
+	A string
+	B internal
+	E string    `conf:"default:postgres"`
+	F time.Time `conf:"default:2023-06-16T10:17:00Z"`
+	G time.Time `conf:"notzero"`
+	I time.Time `conf:"required"`
 }
 
 func TestYAML(t *testing.T) {
-	ts, _ := time.Parse(time.RFC3339, "2000-01-01T10:17:00Z")
+	dTS, _ := time.Parse(time.RFC3339, "2023-06-16T10:17:00Z")
+	oTS, _ := time.Parse(time.RFC3339, "2000-01-01T10:17:00Z")
 
 	tests := []struct {
 		name string
@@ -1049,30 +1078,46 @@ func TestYAML(t *testing.T) {
 			nil,
 			nil,
 			&yamlConfig1{},
-			&yamlConfig1{A: "Easy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts},
+			&yamlConfig1{A: "Easy!", B: internal{C: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS},
 		},
 		{
 			"env",
 			[]byte(yamlData2),
-			map[string]string{"TEST_A": "EnvEasy!", "TEST_D": "2000-01-01T10:17:00Z"},
+			map[string]string{"TEST_A": "EnvEasy!", "TEST_G": "2000-01-01T10:17:00Z", "TEST_I": "2000-01-01T10:17:00Z"},
 			nil,
 			&yamlConfig2{},
-			&yamlConfig2{A: "EnvEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: ts},
+			&yamlConfig2{A: "EnvEasy!", B: internal{C: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS, I: oTS},
 		},
 		{
 			"flag",
 			[]byte(yamlData2),
 			nil,
-			[]string{"conf.test", "--a", "FlagEasy!", "--d", "2000-01-01T10:17:00Z"},
+			[]string{"conf.test", "--a", "FlagEasy!", "--g", "2000-01-01T10:17:00Z", "--i", "2000-01-01T10:17:00Z"},
 			&yamlConfig2{},
-			&yamlConfig2{A: "FlagEasy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", C: ts, D: ts},
+			&yamlConfig2{A: "FlagEasy!", B: internal{C: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS, I: oTS},
+		},
+		{
+			"notzero",
+			[]byte(yamlData31),
+			nil,
+			nil,
+			&yamlConfig3{},
+			errors.New("parsing config: field G is set to zero value"),
+		},
+		{
+			"required",
+			[]byte(yamlData32),
+			nil,
+			nil,
+			&yamlConfig3{},
+			errors.New("parsing config: required field I is missing value"),
 		},
 	}
 
 	t.Log("Given the need to parse basic yaml configuration.")
 	{
 		for i, tt := range tests {
-			t.Logf("\tTest: %d\tWhen checking with arguments %v", i, tt.args)
+			t.Logf("\tTest: %d-%s\tWhen checking with arguments %v", i, tt.name, tt.args)
 			{
 				os.Clearenv()
 				for k, v := range tt.envs {
@@ -1083,13 +1128,25 @@ func TestYAML(t *testing.T) {
 					os.Args = tt.args
 
 					if _, err := conf.Parse("TEST", tt.got, yaml.WithData(tt.yaml)); err != nil {
+						errExp, ok := tt.exp.(error)
+						if ok {
+							if err.Error() == errExp.Error() {
+								t.Logf("\t%s\tShould be able to get the correct error.", success)
+								return
+							}
+
+							t.Fatalf("\t%s\tShould get the correct error : %s.", failed, err)
+						}
+
 						t.Fatalf("\t%s\tShould be able to Parse arguments : %s.", failed, err)
 					}
+
 					t.Logf("\t%s\tShould be able to Parse arguments.", success)
 
 					if diff := cmp.Diff(tt.exp, tt.got); diff != "" {
 						t.Fatalf("\t%s\tShould have properly initialized struct value\n%s", failed, diff)
 					}
+
 					t.Logf("\t%s\tShould have properly initialized struct value.", success)
 				}
 

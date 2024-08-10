@@ -19,7 +19,7 @@ to customize the flag options.
 	noprint  - Denotes to not include the field in any display string.
 	mask     - Includes the field in any display string but masks out the value.
 	required - Denotes a overriding value must be provided using a flag or env variable.
-	nonzero  - Denotes a field can't be set to its zero value.
+	notzero  - Denotes a field can't be set to its zero value.
 	help     - Provides a description for the help.
 
 The field name and any parent struct name will be used for the long form of

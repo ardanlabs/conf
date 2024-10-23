@@ -230,7 +230,7 @@ func parse(args []string, namespace string, cfgStruct interface{}) error {
 		}
 
 		// If the field is marked 'required', check if no value was provided.
-		if field.Options.Required && !foundOverride {
+		if field.Options.Required && field.Field.IsZero() && !foundOverride {
 			return fmt.Errorf("required field %s is missing value", field.Name)
 		}
 	}

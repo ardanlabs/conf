@@ -62,11 +62,13 @@ type config struct {
 	IP        ip
 	DebugHost string      `conf:"default:http://user:password@0.0.0.0:4000,mask"`
 	Password  string      `conf:"default:password,mask"`
+	Immutable string      `conf:"default:mydefaultvalue,immuntable"`
 	Custom    CustomValue `conf:"default:hello"`
 	Embed
 }
 
 // =============================================================================
+
 func TestRequired(t *testing.T) {
 	t.Logf("\tTest: %d\tWhen required values are missing.", 1)
 	{
@@ -215,25 +217,37 @@ func TestParse(t *testing.T) {
 			"default",
 			nil,
 			nil,
-			config{9, "B", false, "", ip{"localhost", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://user:password@0.0.0.0:4000", "password", CustomValue{something: "@hello@"}, Embed{"bill", time.Second}},
+			config{9, "B", false, "", ip{"localhost", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://user:password@0.0.0.0:4000", "password", "mydefaultvalue", CustomValue{something: "@hello@"}, Embed{"bill", time.Second}},
 		},
 		{
 			"env",
 			map[string]string{"TEST_AN_INT": "1", "TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME_VAR": "local", "TEST_DEBUG_HOST": "http://bill:gopher@0.0.0.0:4000", "TEST_PASSWORD": "gopher", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
 			nil,
-			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", CustomValue{something: "@hello@"}, Embed{"andy", time.Minute}},
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", "mydefaultvalue", CustomValue{something: "@hello@"}, Embed{"andy", time.Minute}},
 		},
 		{
 			"flag",
 			nil,
 			[]string{"conf.test", "--an-int", "1", "-s", "s", "--bool", "--skip", "skip", "--ip-name", "local", "--debug-host", "http://bill:gopher@0.0.0.0:4000", "--password", "gopher", "--name", "andy", "--e-dur", "1m"},
-			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", CustomValue{something: "@hello@"}, Embed{"andy", time.Minute}},
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", "mydefaultvalue", CustomValue{something: "@hello@"}, Embed{"andy", time.Minute}},
 		},
 		{
 			"multi",
 			map[string]string{"TEST_A_STRING": "s", "TEST_BOOL": "TRUE", "TEST_IP_NAME_VAR": "local", "TEST_DEBUG_HOST": "http://bill:gopher@0.0.0.0:4000", "TEST_PASSWORD": "gopher", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
 			[]string{"conf.test", "--an-int", "2", "--bool", "--skip", "skip", "--name", "jack", "-d", "1ms"},
-			config{2, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", CustomValue{something: "@hello@"}, Embed{"jack", time.Millisecond}},
+			config{2, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", "mydefaultvalue", CustomValue{something: "@hello@"}, Embed{"jack", time.Millisecond}},
+		},
+		{
+			"immutable-env",
+			map[string]string{"TEST_IMMUTABLE": "change"},
+			nil,
+			config{9, "B", false, "", ip{"localhost", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://user:password@0.0.0.0:4000", "password", "mydefaultvalue", CustomValue{something: "@hello@"}, Embed{"bill", time.Second}},
+		},
+		{
+			"immutable-args",
+			nil,
+			[]string{"conf.test", "--immutable", "change"},
+			config{9, "B", false, "", ip{"localhost", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://user:password@0.0.0.0:4000", "password", "mydefaultvalue", CustomValue{something: "@hello@"}, Embed{"bill", time.Second}},
 		},
 	}
 
@@ -279,7 +293,7 @@ func TestParseEmptyNamespace(t *testing.T) {
 			"env",
 			map[string]string{"AN_INT": "1", "A_STRING": "s", "BOOL": "TRUE", "SKIP": "SKIP", "IP_NAME_VAR": "local", "DEBUG_HOST": "http://bill:gopher@0.0.0.0:4000", "PASSWORD": "gopher", "NAME": "andy", "DURATION": "1m"},
 			nil,
-			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", CustomValue{something: "@hello@"}, Embed{"andy", time.Minute}},
+			config{1, "s", true, "", ip{"local", "127.0.0.0", []string{"127.0.0.1:200", "127.0.0.1:829"}}, "http://bill:gopher@0.0.0.0:4000", "gopher", "mydefaultvalue", CustomValue{something: "@hello@"}, Embed{"andy", time.Minute}},
 		},
 	}
 
@@ -424,6 +438,7 @@ OPTIONS
   --ip-endpoints/$TEST_IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)
   --debug-host/$TEST_DEBUG_HOST      <string>              (default: http://xxxxxx:xxxxxx@0.0.0.0:4000)
   --password/$TEST_PASSWORD          <string>              (default: xxxxxx)
+  --immutable/$TEST_IMMUTABLE        <string>              (immutable,default: mydefaultvalue)
   --custom/$TEST_CUSTOM              <value>               (default: hello)
   --name/$TEST_NAME                  <string>              (default: bill)
   --e-dur/-d/$TEST_DURATION          <duration>            (default: 1s)
@@ -441,6 +456,7 @@ OPTIONS
   --ip-endpoints/$IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)
   --debug-host/$DEBUG_HOST      <string>              (default: http://xxxxxx:xxxxxx@0.0.0.0:4000)
   --password/$PASSWORD          <string>              (default: xxxxxx)
+  --immutable/$IMMUTABLE        <string>              (immutable,default: mydefaultvalue)
   --custom/$CUSTOM              <value>               (default: hello)
   --name/$NAME                  <string>              (default: bill)
   --e-dur/-d/$DURATION          <duration>            (default: 1s)
@@ -517,6 +533,8 @@ func TestUsage(t *testing.T) {
 					if diff := cmp.Diff(gotS, wantS); diff != "" {
 						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
 						t.Log(diff)
+						t.Log("GOT:\n", gotS)
+						t.Log("EXP:\n", wantS)
 					}
 					t.Logf("\t%s\tShould match byte for byte the output.", success)
 				}
@@ -587,6 +605,7 @@ func ExampleString() {
 	// --ip-endpoints=[127.0.0.1:200 127.0.0.1:829]
 	// --debug-host=http://xxxxxx:xxxxxx@0.0.0.0:4000
 	// --password=xxxxxx
+	// --immutable=mydefaultvalue
 	// --custom=@hello@
 	// --name=andy
 	// --e-dur/-d=1m0s

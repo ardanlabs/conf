@@ -178,7 +178,7 @@ func parseTag(tagStr string) (FieldOptions, error) {
 				f.NotZero = true
 			case "mask":
 				f.Mask = true
-			case "immuntable":
+			case "immutable":
 				f.Immutable = true
 			}
 		case 2:

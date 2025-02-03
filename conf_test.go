@@ -62,7 +62,7 @@ type config struct {
 	IP        ip
 	DebugHost string      `conf:"default:http://user:password@0.0.0.0:4000,mask"`
 	Password  string      `conf:"default:password,mask"`
-	Immutable string      `conf:"default:mydefaultvalue,immuntable"`
+	Immutable string      `conf:"default:mydefaultvalue,immutable"`
 	Custom    CustomValue `conf:"default:hello"`
 	Embed
 }

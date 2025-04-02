@@ -200,15 +200,12 @@ func (f *flag) Source(fld Field) (string, bool) {
 
 // flagUsage constructs a usage string for the flag argument.
 func flagUsage(fld Field) string {
-	var usage string
+	usage := "--" + strings.ToLower(strings.Join(fld.FlagKey, `-`))
 
 	if fld.Options.ShortFlagChar != 0 {
-		usage += "-" + strings.ToLower(string(fld.Options.ShortFlagChar)) + ", "
-	} else {
-		usage += "    "
+		flagKey := []string{string(fld.Options.ShortFlagChar)}
+		usage += "/-" + strings.ToLower(strings.Join(flagKey, `-`))
 	}
-
-	usage += "--" + strings.ToLower(strings.Join(fld.FlagKey, `-`))
 
 	return usage
 }

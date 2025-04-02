@@ -74,7 +74,7 @@ func fmtUsage(namespace string, fields []Field) string {
 	cc.Sort(sf)
 
 	_, file := path.Split(os.Args[0])
-	fmt.Fprintf(&sb, "Usage: %s [option...] [argument...]\n\n", file)
+	fmt.Fprintf(&sb, "Usage: %s [options...] [arguments...]\n\n", file)
 
 	w := new(tabwriter.Writer)
 	w.Init(&sb, 0, 4, 2, ' ', tabwriter.TabIndent)

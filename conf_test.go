@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ardanlabs/conf/v4"
-	"github.com/ardanlabs/conf/v4/yaml"
+	"github.com/ardanlabs/conf/v3"
+	"github.com/ardanlabs/conf/v3/yaml"
 	"github.com/google/go-cmp/cmp"
 )
 

@@ -4,11 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
-	"github.com/ardanlabs/conf/v3"
-	"github.com/ardanlabs/conf/v3/yaml"
+	"github.com/ardanlabs/conf/v4"
+	"github.com/ardanlabs/conf/v4/yaml"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -426,11 +427,207 @@ func TestErrors(t *testing.T) {
 	}
 }
 
-func ExampleString() {
+var withNamespace = `Usage: conf.test [options...] [arguments...]
+
+OPTIONS
+  -s, --a-string      <string>              (default: B)                                  
+      --an-int        <int>                 (default: 9)                                  
+      --bool          <bool>                                                              
+      --custom        <value>               (default: hello)                              
+      --debug-host    <string>              (default: http://xxxxxx:xxxxxx@0.0.0.0:4000)  
+  -d, --e-dur         <duration>            (default: 1s)                                 
+  -h, --help                                                                              display this help message
+      --immutable     <string>              (immutable,default: mydefaultvalue)           
+      --ip-endpoints  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)        
+      --ip-ip         <string>              (default: 127.0.0.0)                          
+      --ip-name       <string>              (default: localhost)                          
+      --name          <string>              (default: bill)                               
+      --password      <string>              (default: xxxxxx)                             
+
+ENVIRONMENT
+  TEST_A_STRING      <string>              (default: B)                                  
+  TEST_AN_INT        <int>                 (default: 9)                                  
+  TEST_BOOL          <bool>                                                              
+  TEST_CUSTOM        <value>               (default: hello)                              
+  TEST_DEBUG_HOST    <string>              (default: http://xxxxxx:xxxxxx@0.0.0.0:4000)  
+  TEST_DURATION      <duration>            (default: 1s)                                 
+  TEST_IMMUTABLE     <string>              (immutable,default: mydefaultvalue)           
+  TEST_IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)        
+  TEST_IP_IP         <string>              (default: 127.0.0.0)                          
+  TEST_IP_NAME_VAR   <string>              (default: localhost)                          
+  TEST_NAME          <string>              (default: bill)                               
+  TEST_PASSWORD      <string>              (default: xxxxxx)                             `
+
+var emptyNamespace = `Usage: conf.test [options...] [arguments...]
+
+OPTIONS
+  -s, --a-string      <string>              (default: B)                                  
+      --an-int        <int>                 (default: 9)                                  
+      --bool          <bool>                                                              
+      --custom        <value>               (default: hello)                              
+      --debug-host    <string>              (default: http://xxxxxx:xxxxxx@0.0.0.0:4000)  
+  -d, --e-dur         <duration>            (default: 1s)                                 
+  -h, --help                                                                              display this help message
+      --immutable     <string>              (immutable,default: mydefaultvalue)           
+      --ip-endpoints  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)        
+      --ip-ip         <string>              (default: 127.0.0.0)                          
+      --ip-name       <string>              (default: localhost)                          
+      --name          <string>              (default: bill)                               
+      --password      <string>              (default: xxxxxx)                             
+
+ENVIRONMENT
+  A_STRING      <string>              (default: B)                                  
+  AN_INT        <int>                 (default: 9)                                  
+  BOOL          <bool>                                                              
+  CUSTOM        <value>               (default: hello)                              
+  DEBUG_HOST    <string>              (default: http://xxxxxx:xxxxxx@0.0.0.0:4000)  
+  DURATION      <duration>            (default: 1s)                                 
+  IMMUTABLE     <string>              (immutable,default: mydefaultvalue)           
+  IP_ENDPOINTS  <string>,[string...]  (default: 127.0.0.1:200;127.0.0.1:829)        
+  IP_IP         <string>              (default: 127.0.0.0)                          
+  IP_NAME_VAR   <string>              (default: localhost)                          
+  NAME          <string>              (default: bill)                               
+  PASSWORD      <string>              (default: xxxxxx)                             `
+
+var withNamespaceOptions = `Usage: conf.test [options...] [arguments...]
+
+OPTIONS
+  -h, --help           display this help message
+      --port  <int>    
+
+ENVIRONMENT
+  TEST_PORT  <int>`
+
+var emptyNamespaceOptions = `Usage: conf.test [options...] [arguments...]
+
+OPTIONS
+  -h, --help           display this help message
+      --port  <int>    
+
+ENVIRONMENT
+  PORT  <int>`
+
+func TestUsage(t *testing.T) {
+	tests := []struct {
+		name      string
+		namespace string
+		envs      map[string]string
+		want      string
+		options   string
+	}{
+		{
+			name:      "with-namespace",
+			namespace: "TEST",
+			envs: map[string]string{
+				"TEST_AN_INT":      "1",
+				"TEST_A_STRING":    "s",
+				"TEST_BOOL":        "TRUE",
+				"TEST_SKIP":        "SKIP",
+				"TEST_IP_NAME_VAR": "local",
+				"TEST_NAME":        "andy",
+				"TEST_DURATION":    "1m",
+			},
+			want:    withNamespace,
+			options: withNamespaceOptions,
+		},
+		{
+			name:      "empty-namespace",
+			namespace: "",
+			envs: map[string]string{
+				"AN_INT":      "1",
+				"A_STRING":    "s",
+				"BOOL":        "TRUE",
+				"SKIP":        "SKIP",
+				"IP_NAME_VAR": "local",
+				"NAME":        "andy",
+				"DURATION":    "1m",
+			},
+			want:    emptyNamespace,
+			options: emptyNamespaceOptions,
+		},
+	}
+
+	t.Log("Given the need validate usage output.")
+	{
+		for testID, tt := range tests {
+			f := func(t *testing.T) {
+				t.Logf("\tTest: %d\tWhen testing %s", testID, tt.name)
+				{
+					os.Clearenv()
+					for k, v := range tt.envs {
+						os.Setenv(k, v)
+					}
+
+					os.Args = []string{"conf.test"}
+
+					var cfg config
+					if _, err := conf.Parse(tt.namespace, &cfg); err != nil {
+						t.Log(err)
+						return
+					}
+
+					got, err := conf.UsageInfo(tt.namespace, &cfg)
+					if err != nil {
+						t.Log(err)
+						return
+					}
+
+					got = strings.TrimRight(got, "\n")
+					gotS := strings.Split(got, "\n")
+					wantS := strings.Split(tt.want, "\n")
+					if diff := cmp.Diff(gotS, wantS); diff != "" {
+						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+						t.Log(diff)
+						t.Log("GOT:\n", got)
+						t.Log("EXP:\n", tt.want)
+					}
+					t.Logf("\t%s\tShould match byte for byte the output.", success)
+				}
+
+				t.Logf("\tTest: %d\tWhen using a struct with arguments.", 1)
+				{
+					var cfg struct {
+						Port int
+						Args conf.Args
+					}
+
+					got, err := conf.UsageInfo(tt.namespace, &cfg)
+					if err != nil {
+						t.Log(err)
+						return
+					}
+
+					got = strings.TrimRight(got, " \n")
+					gotS := strings.Split(got, "\n")
+					wantS := strings.Split(tt.options, "\n")
+					if diff := cmp.Diff(gotS, wantS); diff != "" {
+						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+						t.Log(diff)
+						t.Log("GOT:\n", got)
+						t.Log("EXP:\n", tt.options)
+					}
+					t.Logf("\t%s\tShould match byte for byte the output.", success)
+				}
+			}
+
+			t.Run(tt.name, f)
+		}
+	}
+}
+
+func TestExampleString(t *testing.T) {
 	tt := struct {
 		envs map[string]string
 	}{
-		envs: map[string]string{"TEST_AN_INT": "1", "TEST_S": "s", "TEST_BOOL": "TRUE", "TEST_SKIP": "SKIP", "TEST_IP_NAME": "local", "TEST_NAME": "andy", "TEST_DURATION": "1m"},
+		envs: map[string]string{
+			"TEST_AN_INT":   "1",
+			"TEST_S":        "s",
+			"TEST_BOOL":     "TRUE",
+			"TEST_SKIP":     "SKIP",
+			"TEST_IP_NAME":  "local",
+			"TEST_NAME":     "andy",
+			"TEST_DURATION": "1m",
+		},
 	}
 
 	os.Clearenv()
@@ -442,31 +639,17 @@ func ExampleString() {
 
 	var cfg config
 	if _, err := conf.Parse("TEST", &cfg); err != nil {
-		fmt.Print(err)
+		t.Log(err)
 		return
 	}
 
 	out, err := conf.String(&cfg)
 	if err != nil {
-		fmt.Print(err)
+		t.Log(err)
 		return
 	}
 
-	fmt.Print(out)
-
-	// Output:
-	// --an-int=1
-	// --a-string/-s=B
-	// --bool=true
-	// --ip-name=localhost
-	// --ip-ip=127.0.0.0
-	// --ip-endpoints=[127.0.0.1:200 127.0.0.1:829]
-	// --debug-host=http://xxxxxx:xxxxxx@0.0.0.0:4000
-	// --password=xxxxxx
-	// --immutable=mydefaultvalue
-	// --custom=@hello@
-	// --name=andy
-	// --e-dur/-d=1m0s
+	t.Log(out)
 }
 
 type ConfExplicit struct {

@@ -639,17 +639,31 @@ func TestExampleString(t *testing.T) {
 
 	var cfg config
 	if _, err := conf.Parse("TEST", &cfg); err != nil {
-		t.Log(err)
+		fmt.Print(err)
 		return
 	}
 
 	out, err := conf.String(&cfg)
 	if err != nil {
-		t.Log(err)
+		fmt.Print(err)
 		return
 	}
 
-	t.Log(out)
+	fmt.Print(out)
+
+	// Output:
+	// --an-int=1
+	// --a-string/-s=B
+	// --bool=true
+	// --ip-name=localhost
+	// --ip-ip=127.0.0.0
+	// --ip-endpoints=[127.0.0.1:200 127.0.0.1:829]
+	// --debug-host=http://xxxxxx:xxxxxx@0.0.0.0:4000
+	// --password=xxxxxx
+	// --immutable=mydefaultvalue
+	// --custom=@hello@
+	// --name=andy
+	// --e-dur/-d=1m0s
 }
 
 type ConfExplicit struct {

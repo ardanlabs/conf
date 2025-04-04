@@ -1,4 +1,4 @@
-module github.com/ardanlabs/conf/v3
+module github.com/ardanlabs/conf/v4
 
 go 1.23.0
 

@@ -211,6 +211,11 @@ func flagUsage(fld Field) string {
 	return usage
 }
 
+// longOptInfo constructs a long option description string.
+func longOptInfo(fld Field) string {
+	return "    --" + strings.ToLower(strings.Join(fld.FlagKey, `-`))
+}
+
 /*
 Portions Copyright (c) 2009 The Go Authors. All rights reserved.
 

@@ -9,8 +9,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// YAML provides support for unmarshaling YAML into the applications
-// config value. After the yaml is unmarshaled, the Parse function is
+// YAML provides support for unmarshalling YAML into the applications
+// config value. After the yaml is unmarshalled, the Parse function is
 // executed to apply defaults and overrides. Fields that are not set to
 // their zero after the yaml is parsed will have the defaults ignored.
 type YAML struct {

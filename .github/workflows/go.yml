@@ -3,10 +3,11 @@
 
 name: Go
 
+permissions:
+  contents: read
+
 on:
-  push:
-  pull_request_target:
-    branches: [ "master" ]
+  pull_request:
 
 env:
   GO_VERSION: '1.23.0'
@@ -17,25 +18,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - name: Set up Go
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
           cache-dependency-path: 'go.sum'
       - name: Run Download
         run: go mod download
-
       - name: Run vet
         run: CGO_ENABLED=0 go vet ./...
-
       - name: Run staticheck
         run: |
           go install honnef.co/go/tools/cmd/staticcheck@latest
           staticcheck -checks=all ./...
-
       - name: Run govulncheck
         run: |
           go install golang.org/x/vuln/cmd/govulncheck@latest
           govulncheck -show verbose ./...
+
+  tidy:
+    name: tidy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+          cache-dependency-path: 'go.sum'
+      - name: Run tidy
+        run: go mod tidy --diff
 
   tests:
     name: tests
@@ -44,13 +56,19 @@ jobs:
       matrix:
         go-version: [ oldstable, stable ]
     steps:
-      - uses: actions/checkout@v3
-
+      - uses: actions/checkout@v4
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           cache-dependency-path: 'go.sum'
           go-version: ${{ matrix.go-version }}
-
       - name: Run tests
         run: go test -race ./...
+
+  spelling:
+    name: spell check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Spell check repo
+        uses: crate-ci/typos@v1

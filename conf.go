@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -75,13 +76,16 @@ func String(v interface{}) (string, error) {
 		return "", err
 	}
 
+	sf := sortedFields{fields: fields}
+	sort.Sort(&sf)
+
 	var s strings.Builder
-	for i, fld := range fields {
+	for i, fld := range sf.fields {
 		if fld.Options.Noprint {
 			continue
 		}
 
-		s.WriteString(flagUsage(fld))
+		s.WriteString(longOptInfo(fld))
 		s.WriteString("=")
 		v := fmt.Sprintf("%v", fld.Field.Interface())
 

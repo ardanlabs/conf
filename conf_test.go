@@ -580,6 +580,7 @@ func TestUsage(t *testing.T) {
 						t.Log(diff)
 						t.Log("GOT:\n", got)
 						t.Log("EXP:\n", tt.want)
+						return
 					}
 					t.Logf("\t%s\tShould match byte for byte the output.", success)
 				}
@@ -605,6 +606,7 @@ func TestUsage(t *testing.T) {
 						t.Log(diff)
 						t.Log("GOT:\n", got)
 						t.Log("EXP:\n", tt.options)
+						return
 					}
 					t.Logf("\t%s\tShould match byte for byte the output.", success)
 				}
@@ -615,55 +617,98 @@ func TestUsage(t *testing.T) {
 	}
 }
 
+var expectedStringOutput = `    --a-string=B
+    --an-int=1
+    --bool=true
+    --custom=@hello@
+    --debug-host=http://xxxxxx:xxxxxx@0.0.0.0:4000
+    --e-dur=1m0s
+    --immutable=mydefaultvalue
+    --ip-endpoints=[127.0.0.1:200 127.0.0.1:829]
+    --ip-ip=127.0.0.0
+    --ip-name=localhost
+    --name=andy
+    --password=xxxxxx`
+
 func TestExampleString(t *testing.T) {
-	tt := struct {
-		envs map[string]string
+	tests := []struct {
+		name      string
+		namespace string
+		want      string
+		envs      map[string]string
 	}{
-		envs: map[string]string{
-			"TEST_AN_INT":   "1",
-			"TEST_S":        "s",
-			"TEST_BOOL":     "TRUE",
-			"TEST_SKIP":     "SKIP",
-			"TEST_IP_NAME":  "local",
-			"TEST_NAME":     "andy",
-			"TEST_DURATION": "1m",
+		{
+			name:      "with-namespace",
+			namespace: "TEST",
+			envs: map[string]string{
+				"TEST_AN_INT":   "1",
+				"TEST_S":        "s",
+				"TEST_BOOL":     "TRUE",
+				"TEST_SKIP":     "SKIP",
+				"TEST_IP_NAME":  "local",
+				"TEST_NAME":     "andy",
+				"TEST_DURATION": "1m",
+			},
+			want: expectedStringOutput,
+		},
+		{
+			name:      "without-namespace",
+			namespace: "",
+			envs: map[string]string{
+				"AN_INT":   "1",
+				"S":        "s",
+				"BOOL":     "TRUE",
+				"SKIP":     "SKIP",
+				"IP_NAME":  "local",
+				"NAME":     "andy",
+				"DURATION": "1m",
+			},
+			want: expectedStringOutput,
 		},
 	}
 
-	os.Clearenv()
-	for k, v := range tt.envs {
-		os.Setenv(k, v)
+	t.Log("Given the need validate conf output.")
+	{
+		for testID, tt := range tests {
+			f := func(t *testing.T) {
+				t.Logf("\tTest: %d\tWhen testing %s", testID, tt.name)
+				{
+					os.Clearenv()
+					for k, v := range tt.envs {
+						os.Setenv(k, v)
+					}
+
+					os.Args = []string{"conf.test"}
+
+					var cfg config
+					if _, err := conf.Parse(tt.namespace, &cfg); err != nil {
+						t.Log(err)
+						return
+					}
+
+					got, err := conf.String(&cfg)
+					if err != nil {
+						t.Log(err)
+						return
+					}
+
+					got = strings.TrimRight(got, "\n")
+					gotS := strings.Split(got, "\n")
+					wantS := strings.Split(tt.want, "\n")
+					if diff := cmp.Diff(gotS, wantS); diff != "" {
+						t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
+						t.Log(diff)
+						t.Log("GOT:\n", got)
+						t.Log("EXP:\n", tt.want)
+						return
+					}
+					t.Logf("\t%s\tShould match byte for byte the output.", success)
+				}
+			}
+
+			t.Run(tt.name, f)
+		}
 	}
-
-	os.Args = []string{"conf.test"}
-
-	var cfg config
-	if _, err := conf.Parse("TEST", &cfg); err != nil {
-		fmt.Print(err)
-		return
-	}
-
-	out, err := conf.String(&cfg)
-	if err != nil {
-		fmt.Print(err)
-		return
-	}
-
-	fmt.Print(out)
-
-	// Output:
-	// --an-int=1
-	// --a-string/-s=B
-	// --bool=true
-	// --ip-name=localhost
-	// --ip-ip=127.0.0.0
-	// --ip-endpoints=[127.0.0.1:200 127.0.0.1:829]
-	// --debug-host=http://xxxxxx:xxxxxx@0.0.0.0:4000
-	// --password=xxxxxx
-	// --immutable=mydefaultvalue
-	// --custom=@hello@
-	// --name=andy
-	// --e-dur/-d=1m0s
 }
 
 type ConfExplicit struct {
@@ -758,10 +803,11 @@ func TestVersionExplicit(t *testing.T) {
 				f := func(t *testing.T) {
 					os.Args = tt.args
 					if help, err := conf.Parse("APP", &tt.config); err != nil {
-						if err == conf.ErrHelpWanted {
+						if err != conf.ErrHelpWanted {
 							if diff := cmp.Diff(tt.want, help); diff != "" {
 								t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
 								t.Log(diff)
+								return
 							}
 							t.Logf("\t%s\tShould match byte for byte the output.", success)
 						}
@@ -860,6 +906,7 @@ func TestVersionImplicit(t *testing.T) {
 							if diff := cmp.Diff(tt.want, help); diff != "" {
 								t.Errorf("\t%s\tShould match the output byte for byte. See diff:", failed)
 								t.Log(diff)
+								return
 							}
 							t.Logf("\t%s\tShould match byte for byte the output.", success)
 						}

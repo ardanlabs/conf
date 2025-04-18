@@ -61,7 +61,6 @@ func Parse(prefix string, cfg interface{}, parsers ...Parsers) (string, error) {
 		if err != nil {
 			return "", fmt.Errorf("generating config version: %w", err)
 		}
-
 		return version, ErrHelpWanted
 	}
 
@@ -70,13 +69,15 @@ func Parse(prefix string, cfg interface{}, parsers ...Parsers) (string, error) {
 
 // String returns a stringified version of the provided conf-tagged
 // struct, minus any fields tagged with `noprint`.
-func String(v interface{}) (string, error) {
+func String(v any) (string, error) {
 	fields, err := extractFields(nil, v)
 	if err != nil {
 		return "", err
 	}
 
-	sf := sortedFields{fields: fields}
+	sf := sortedFields{
+		fields: fields,
+	}
 	sort.Sort(&sf)
 
 	var s strings.Builder
@@ -145,6 +146,7 @@ func VersionInfo(namespace string, v interface{}) (string, error) {
 			str.WriteString(fields[i].Field.String())
 			continue
 		}
+
 		if fields[i].Name == descKey && fields[i].Field.Len() > 0 {
 			if str.Len() > 0 {
 				str.WriteString("\n")
@@ -153,6 +155,7 @@ func VersionInfo(namespace string, v interface{}) (string, error) {
 			break
 		}
 	}
+
 	return str.String(), nil
 }
 
@@ -173,6 +176,7 @@ func parse(args []string, namespace string, cfgStruct interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	if len(fields) == 0 {
 		return errors.New("no fields identified in config struct")
 	}

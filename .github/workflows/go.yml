@@ -10,7 +10,7 @@ on:
   pull_request:
 
 env:
-  GO_VERSION: '1.23.0'
+  GO_VERSION: "1.24.4"
 
 jobs:
   checks:
@@ -22,7 +22,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: 'go.sum'
+          cache-dependency-path: "go.sum"
       - name: Run Download
         run: go mod download
       - name: Run vet
@@ -45,7 +45,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: stable
-          cache-dependency-path: 'go.sum'
+          cache-dependency-path: "go.sum"
       - name: Run tidy
         run: go mod tidy --diff
 
@@ -54,13 +54,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [ oldstable, stable ]
+        go-version: [oldstable, stable]
     steps:
       - uses: actions/checkout@v4
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          cache-dependency-path: 'go.sum'
+          cache-dependency-path: "go.sum"
           go-version: ${{ matrix.go-version }}
       - name: Run tests
         run: go test -race ./...

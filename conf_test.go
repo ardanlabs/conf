@@ -8,9 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+
 	"github.com/ardanlabs/conf/v3"
 	"github.com/ardanlabs/conf/v3/yaml"
-	"github.com/google/go-cmp/cmp"
 )
 
 const (
@@ -1171,6 +1172,14 @@ b:
   d: [3, 4]
 g: 2000-01-01T10:17:00Z
 `
+var yamlData33 = `
+a: Easy!
+b:
+  c: 2
+  d: [3, 4]
+g: 2000-01-01T10:17:00Z
+i: 2023-06-16T10:17:00Z
+`
 
 type yamlConfig3 struct {
 	A string
@@ -1232,6 +1241,14 @@ func TestYAML(t *testing.T) {
 			nil,
 			&yamlConfig3{},
 			errors.New("parsing config: required field I is missing value"),
+		},
+		{
+			"required with value in yaml",
+			[]byte(yamlData33),
+			nil,
+			nil,
+			&yamlConfig3{},
+			&yamlConfig3{A: "Easy!", B: internal{RenamedC: 2, D: []int{3, 4}}, E: "postgres", F: dTS, G: oTS, I: dTS},
 		},
 	}
 

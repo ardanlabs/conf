@@ -943,7 +943,7 @@ func TestParseBoolFlag(t *testing.T) {
 
 	type args struct {
 		prefix  string
-		cfg     interface{}
+		cfg     any
 		parsers []conf.Parsers
 	}
 
@@ -952,7 +952,7 @@ func TestParseBoolFlag(t *testing.T) {
 		osags   []string
 		args    args
 		wantErr bool
-		expect  interface{}
+		expect  any
 	}{
 		{
 			name:  "long w/o equals",

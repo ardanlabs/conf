@@ -36,6 +36,11 @@ type Field struct {
 	// Important for flag parsing or any other source where
 	// booleans might be treated specially.
 	BoolField bool
+
+	// Non-zero only for map entry fields. After the field value is set,
+	// it must be written back to mapParent at mapKey via SetMapIndex.
+	mapParent reflect.Value
+	mapKey    reflect.Value
 }
 
 // FieldOptions maintain flag options for a given field.
@@ -127,6 +132,34 @@ func extractFields(prefix []string, target interface{}) ([]Field, error) {
 				return nil, err
 			}
 			fields = append(fields, innerFields...)
+
+		// If we found a non-nil map with string keys, traverse its entries
+		// individually so each can be overridden via its own env var or flag.
+		case f.Kind() == reflect.Map &&
+			f.Type().Key().Kind() == reflect.String &&
+			!f.IsNil() && len(f.MapKeys()) > 0:
+
+			valType := f.Type().Elem()
+			for _, mapKey := range f.MapKeys() {
+				keyStr := mapKey.String()
+				entryKey := append(append([]string{}, fieldKey...), keyStr)
+
+				// Create a settable temp value seeded from the current entry.
+				tmpVal := reflect.New(valType).Elem()
+				if existing := f.MapIndex(mapKey); existing.IsValid() {
+					tmpVal.Set(existing)
+				}
+
+				fields = append(fields, Field{
+					Name:      fieldName + "[" + keyStr + "]",
+					EnvKey:    entryKey,
+					FlagKey:   entryKey,
+					Field:     tmpVal,
+					BoolField: valType.Kind() == reflect.Bool,
+					mapParent: f,
+					mapKey:    mapKey,
+				})
+			}
 
 		default:
 			envKey := make([]string, len(fieldKey))

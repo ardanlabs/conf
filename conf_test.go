@@ -1276,3 +1276,333 @@ func TestYAML(t *testing.T) {
 		}
 	}
 }
+
+
+func TestMapTraversal(t *testing.T) {
+	yamlLabels := []byte(`
+labels:
+  env: staging
+  region: us-east
+`)
+
+	tests := []struct {
+		name    string
+		envs    map[string]string
+		args    []string
+		initial map[string]string
+		parsers []conf.Parsers
+		want    map[string]string
+	}{
+		{
+			name:    "env-override",
+			envs:    map[string]string{"TEST_LABELS_ENV": "production"},
+			initial: map[string]string{"env": "staging", "region": "us-east"},
+			want:    map[string]string{"env": "production", "region": "us-east"},
+		},
+		{
+			name:    "flag-override",
+			args:    []string{"conf.test", "--labels-env", "production"},
+			initial: map[string]string{"env": "staging", "region": "us-east"},
+			want:    map[string]string{"env": "production", "region": "us-east"},
+		},
+		{
+			name: "nil-map-whole-map-format",
+			envs: map[string]string{"TEST_LABELS": "env:production;region:us-east"},
+			want: map[string]string{"env": "production", "region": "us-east"},
+		},
+		{
+			name:    "empty-map-falls-through-to-whole-map-format",
+			envs:    map[string]string{"TEST_LABELS": "env:production"},
+			initial: map[string]string{},
+			want:    map[string]string{"env": "production"},
+		},
+		{
+			name:    "flag-overrides-env-same-key",
+			envs:    map[string]string{"TEST_LABELS_ENV": "from-env"},
+			args:    []string{"conf.test", "--labels-env", "from-flag"},
+			initial: map[string]string{"env": "staging"},
+			want:    map[string]string{"env": "from-flag"},
+		},
+		{
+			name:    "yaml-then-env-override",
+			envs:    map[string]string{"TEST_LABELS_ENV": "production"},
+			parsers: []conf.Parsers{yaml.WithData(yamlLabels)},
+			want:    map[string]string{"env": "production", "region": "us-east"},
+		},
+		{
+			name:    "yaml-then-flag-override",
+			args:    []string{"conf.test", "--labels-env", "production"},
+			parsers: []conf.Parsers{yaml.WithData(yamlLabels)},
+			want:    map[string]string{"env": "production", "region": "us-east"},
+		},
+		{
+			name:    "hyphen-key-env-override",
+			envs:    map[string]string{"TEST_LABELS_ONE_TWO": "val"},
+			initial: map[string]string{"one-two": "old"},
+			want:    map[string]string{"one-two": "val"},
+		},
+		{
+			name:    "underscore-key-env-override",
+			envs:    map[string]string{"TEST_LABELS_ONE_TWO": "val"},
+			initial: map[string]string{"one_two": "old"},
+			want:    map[string]string{"one_two": "val"},
+		},
+		{
+			name:    "hyphen-key-flag-override",
+			args:    []string{"conf.test", "--labels-one-two", "val"},
+			initial: map[string]string{"one-two": "old"},
+			want:    map[string]string{"one-two": "val"},
+		},
+		{
+			name:    "pre-populated-whole-map-env-override",
+			envs:    map[string]string{"TEST_LABELS": "env:production;region:ap-south"},
+			initial: map[string]string{"env": "staging", "region": "us-east"},
+			want:    map[string]string{"env": "production", "region": "ap-south"},
+		},
+		{
+			name:    "yaml-then-whole-map-env-override",
+			envs:    map[string]string{"TEST_LABELS": "env:production;region:ap-south"},
+			parsers: []conf.Parsers{yaml.WithData(yamlLabels)},
+			want:    map[string]string{"env": "production", "region": "ap-south"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Clearenv()
+			for k, v := range tt.envs {
+				os.Setenv(k, v)
+			}
+			if tt.args != nil {
+				os.Args = tt.args
+			} else {
+				os.Args = []string{"conf.test"}
+			}
+
+			var cfg struct {
+				Labels map[string]string
+			}
+			cfg.Labels = tt.initial
+
+			if _, err := conf.Parse("TEST", &cfg, tt.parsers...); err != nil {
+				t.Fatalf("\t%s\tShould not error: %s", failed, err)
+			}
+			if diff := cmp.Diff(tt.want, cfg.Labels); diff != "" {
+				t.Fatalf("\t%s\tMap mismatch (-want +got):\n%s", failed, diff)
+			}
+		})
+	}
+}
+
+func TestMapFieldOptions(t *testing.T) {
+	t.Run("immutable-map-not-overridden", func(t *testing.T) {
+		os.Clearenv()
+		os.Setenv("TEST_SECRETS_KEY", "hacked")
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Secrets map[string]string `conf:"immutable"`
+		}
+		cfg.Secrets = map[string]string{"key": "original"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		if cfg.Secrets["key"] != "original" {
+			t.Errorf("\t%s\tImmutable map entry should not be overridden, got %q", failed, cfg.Secrets["key"])
+		}
+	})
+
+	t.Run("masked-map-not-printed", func(t *testing.T) {
+		os.Clearenv()
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Tokens map[string]string `conf:"mask"`
+		}
+		cfg.Tokens = map[string]string{"api": "supersecret"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		out, err := conf.String(&cfg)
+		if err != nil {
+			t.Fatalf("\t%s\tString() should not error: %s", failed, err)
+		}
+		if strings.Contains(out, "supersecret") {
+			t.Errorf("\t%s\tMasked map entry should not appear in String() output, got:\n%s", failed, out)
+		}
+		if !strings.Contains(out, "xxxxxx") {
+			t.Errorf("\t%s\tMasked map entry should appear as xxxxxx in String() output, got:\n%s", failed, out)
+		}
+	})
+
+	t.Run("noprint-map-omitted", func(t *testing.T) {
+		os.Clearenv()
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Secrets map[string]string `conf:"noprint"`
+		}
+		cfg.Secrets = map[string]string{"key": "topsecret"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		out, err := conf.String(&cfg)
+		if err != nil {
+			t.Fatalf("\t%s\tString() should not error: %s", failed, err)
+		}
+		if strings.Contains(out, "topsecret") {
+			t.Errorf("\t%s\tNoprint map entry should be omitted from String() output, got:\n%s", failed, out)
+		}
+		if strings.Contains(out, "secrets") {
+			t.Errorf("\t%s\tNoprint map field should be omitted entirely from String() output, got:\n%s", failed, out)
+		}
+	})
+}
+
+func TestMapTraversalEdgeCases(t *testing.T) {
+	t.Run("map-in-nested-struct", func(t *testing.T) {
+		os.Clearenv()
+		os.Setenv("TEST_INFRA_LABELS_ENV", "production")
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Infra struct {
+				Labels map[string]string
+			}
+		}
+		cfg.Infra.Labels = map[string]string{"env": "staging", "region": "us-east"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		if diff := cmp.Diff(
+			map[string]string{"env": "production", "region": "us-east"},
+			cfg.Infra.Labels,
+		); diff != "" {
+			t.Fatalf("\t%s\tMap mismatch (-want +got):\n%s", failed, diff)
+		}
+	})
+
+	t.Run("strict-flags-map-entry-consumed", func(t *testing.T) {
+		os.Clearenv()
+		os.Args = []string{"conf.test", "--labels-env", "production"}
+
+		var cfg struct {
+			Labels map[string]string
+		}
+		cfg.Labels = map[string]string{"env": "staging"}
+
+		if _, err := conf.ParseWithOptions("TEST", &cfg, conf.WithStrictFlags()); err != nil {
+			t.Fatalf("\t%s\tShould not error with strict flags: %s", failed, err)
+		}
+		if cfg.Labels["env"] != "production" {
+			t.Errorf("\t%s\tExpected env=production, got %q", failed, cfg.Labels["env"])
+		}
+	})
+
+	t.Run("new-key-not-added", func(t *testing.T) {
+		os.Clearenv()
+		os.Setenv("TEST_LABELS_NEWKEY", "val")
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Labels map[string]string
+		}
+		cfg.Labels = map[string]string{"env": "staging"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		if _, exists := cfg.Labels["newkey"]; exists {
+			t.Errorf("\t%s\tKey absent at parse time should not be added", failed)
+		}
+	})
+
+	t.Run("string-output-reflects-overrides", func(t *testing.T) {
+		os.Clearenv()
+		os.Setenv("TEST_LABELS_ENV", "production")
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Labels map[string]string
+		}
+		cfg.Labels = map[string]string{"env": "staging"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		out, err := conf.String(&cfg)
+		if err != nil {
+			t.Fatalf("\t%s\tString() should not error: %s", failed, err)
+		}
+		if !strings.Contains(out, "production") {
+			t.Errorf("\t%s\tString() should contain overridden value, got:\n%s", failed, out)
+		}
+		if strings.Contains(out, "staging") {
+			t.Errorf("\t%s\tString() should not contain old value, got:\n%s", failed, out)
+		}
+	})
+
+	t.Run("int-map-flag-override", func(t *testing.T) {
+		os.Clearenv()
+		os.Args = []string{"conf.test", "--ports-http", "9090"}
+
+		var cfg struct {
+			Ports map[string]int
+		}
+		cfg.Ports = map[string]int{"http": 8080, "https": 8443}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		if diff := cmp.Diff(map[string]int{"http": 9090, "https": 8443}, cfg.Ports); diff != "" {
+			t.Fatalf("\t%s\tMap mismatch (-want +got):\n%s", failed, diff)
+		}
+	})
+
+	boolTests := []struct {
+		name string
+		envs map[string]string
+		args []string
+		want map[string]bool
+	}{
+		{
+			name: "bool-map-flag-without-value",
+			args: []string{"conf.test", "--flags-debug"},
+			want: map[string]bool{"debug": true, "verbose": false},
+		},
+		{
+			name: "bool-map-env-override",
+			envs: map[string]string{"TEST_FLAGS_DEBUG": "true"},
+			want: map[string]bool{"debug": true, "verbose": false},
+		},
+	}
+	for _, tt := range boolTests {
+		t.Run(tt.name, func(t *testing.T) {
+			os.Clearenv()
+			for k, v := range tt.envs {
+				os.Setenv(k, v)
+			}
+			if tt.args != nil {
+				os.Args = tt.args
+			} else {
+				os.Args = []string{"conf.test"}
+			}
+
+			var cfg struct {
+				Flags map[string]bool
+			}
+			cfg.Flags = map[string]bool{"debug": false, "verbose": false}
+
+			if _, err := conf.Parse("TEST", &cfg); err != nil {
+				t.Fatalf("\t%s\tShould not error: %s", failed, err)
+			}
+			if diff := cmp.Diff(tt.want, cfg.Flags); diff != "" {
+				t.Fatalf("\t%s\tMap mismatch (-want +got):\n%s", failed, diff)
+			}
+		})
+	}
+}

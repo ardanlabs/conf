@@ -133,34 +133,6 @@ func extractFields(prefix []string, target interface{}) ([]Field, error) {
 			}
 			fields = append(fields, innerFields...)
 
-		// If we found a non-nil map with string keys, traverse its entries
-		// individually so each can be overridden via its own env var or flag.
-		case f.Kind() == reflect.Map &&
-			f.Type().Key().Kind() == reflect.String &&
-			!f.IsNil() && len(f.MapKeys()) > 0:
-
-			valType := f.Type().Elem()
-			for _, mapKey := range f.MapKeys() {
-				keyStr := mapKey.String()
-				entryKey := append(append([]string{}, fieldKey...), keyStr)
-
-				// Create a settable temp value seeded from the current entry.
-				tmpVal := reflect.New(valType).Elem()
-				if existing := f.MapIndex(mapKey); existing.IsValid() {
-					tmpVal.Set(existing)
-				}
-
-				fields = append(fields, Field{
-					Name:      fieldName + "[" + keyStr + "]",
-					EnvKey:    entryKey,
-					FlagKey:   entryKey,
-					Field:     tmpVal,
-					BoolField: valType.Kind() == reflect.Bool,
-					mapParent: f,
-					mapKey:    mapKey,
-				})
-			}
-
 		default:
 			envKey := make([]string, len(fieldKey))
 			copy(envKey, fieldKey)
@@ -183,6 +155,40 @@ func extractFields(prefix []string, target interface{}) ([]Field, error) {
 				BoolField: f.Kind() == reflect.Bool,
 			}
 			fields = append(fields, fld)
+
+			// For non-nil, non-empty string-keyed maps also emit per-entry
+			// fields so individual keys can be overridden via their own env
+			// var or flag. Per-entry fields are appended after the whole-map
+			// field so they take precedence (processed later in the parse loop).
+			if f.Kind() == reflect.Map && f.Type().Key().Kind() == reflect.String &&
+				!f.IsNil() && len(f.MapKeys()) > 0 {
+
+				valType := f.Type().Elem()
+				for _, mapKey := range f.MapKeys() {
+					keyStr := mapKey.String()
+					entryKey := append(append([]string{}, fieldKey...), keyStr)
+
+					tmpVal := reflect.New(valType).Elem()
+					if existing := f.MapIndex(mapKey); existing.IsValid() {
+						tmpVal.Set(existing)
+					}
+
+					fields = append(fields, Field{
+						Name:      fieldName + "[" + keyStr + "]",
+						EnvKey:    entryKey,
+						FlagKey:   entryKey,
+						Field:     tmpVal,
+						BoolField: valType.Kind() == reflect.Bool,
+						Options: FieldOptions{
+							Immutable: fieldOpts.Immutable,
+							Mask:      fieldOpts.Mask,
+							Noprint:   fieldOpts.Noprint,
+						},
+						mapParent: f,
+						mapKey:    mapKey,
+					})
+				}
+			}
 		}
 	}
 

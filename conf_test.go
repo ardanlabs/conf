@@ -1353,6 +1353,18 @@ labels:
 			initial: map[string]string{"one-two": "old"},
 			want:    map[string]string{"one-two": "val"},
 		},
+		{
+			name:    "pre-populated-whole-map-env-override",
+			envs:    map[string]string{"TEST_LABELS": "env:production;region:ap-south"},
+			initial: map[string]string{"env": "staging", "region": "us-east"},
+			want:    map[string]string{"env": "production", "region": "ap-south"},
+		},
+		{
+			name:    "yaml-then-whole-map-env-override",
+			envs:    map[string]string{"TEST_LABELS": "env:production;region:ap-south"},
+			parsers: []conf.Parsers{yaml.WithData(yamlLabels)},
+			want:    map[string]string{"env": "production", "region": "ap-south"},
+		},
 	}
 
 	for _, tt := range tests {
@@ -1380,6 +1392,74 @@ labels:
 			}
 		})
 	}
+}
+
+func TestMapFieldOptions(t *testing.T) {
+	t.Run("immutable-map-not-overridden", func(t *testing.T) {
+		os.Clearenv()
+		os.Setenv("TEST_SECRETS_KEY", "hacked")
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Secrets map[string]string `conf:"immutable"`
+		}
+		cfg.Secrets = map[string]string{"key": "original"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		if cfg.Secrets["key"] != "original" {
+			t.Errorf("\t%s\tImmutable map entry should not be overridden, got %q", failed, cfg.Secrets["key"])
+		}
+	})
+
+	t.Run("masked-map-not-printed", func(t *testing.T) {
+		os.Clearenv()
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Tokens map[string]string `conf:"mask"`
+		}
+		cfg.Tokens = map[string]string{"api": "supersecret"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		out, err := conf.String(&cfg)
+		if err != nil {
+			t.Fatalf("\t%s\tString() should not error: %s", failed, err)
+		}
+		if strings.Contains(out, "supersecret") {
+			t.Errorf("\t%s\tMasked map entry should not appear in String() output, got:\n%s", failed, out)
+		}
+		if !strings.Contains(out, "xxxxxx") {
+			t.Errorf("\t%s\tMasked map entry should appear as xxxxxx in String() output, got:\n%s", failed, out)
+		}
+	})
+
+	t.Run("noprint-map-omitted", func(t *testing.T) {
+		os.Clearenv()
+		os.Args = []string{"conf.test"}
+
+		var cfg struct {
+			Secrets map[string]string `conf:"noprint"`
+		}
+		cfg.Secrets = map[string]string{"key": "topsecret"}
+
+		if _, err := conf.Parse("TEST", &cfg); err != nil {
+			t.Fatalf("\t%s\tShould not error: %s", failed, err)
+		}
+		out, err := conf.String(&cfg)
+		if err != nil {
+			t.Fatalf("\t%s\tString() should not error: %s", failed, err)
+		}
+		if strings.Contains(out, "topsecret") {
+			t.Errorf("\t%s\tNoprint map entry should be omitted from String() output, got:\n%s", failed, out)
+		}
+		if strings.Contains(out, "secrets") {
+			t.Errorf("\t%s\tNoprint map field should be omitted entirely from String() output, got:\n%s", failed, out)
+		}
+	})
 }
 
 func TestMapTraversalEdgeCases(t *testing.T) {

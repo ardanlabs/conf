@@ -308,12 +308,12 @@ func parse(args []string, namespace string, cfgStruct interface{}, opts *parseOp
 		}
 
 		if field.Options.NotZero && field.Field.IsZero() {
-			return fmt.Errorf("field %s:(%s) is set to zero value", field.Name, field.Options.EnvName)
+			return fmt.Errorf("field %s (%s) is set to zero value", field.Name, field.Options.EnvName)
 		}
 
 		// If the field is marked 'required', check if no value was provided.
 		if field.Options.Required && !foundOverride {
-			return fmt.Errorf("required field %s:(%s) is missing value", field.Name, field.Options.EnvName)
+			return fmt.Errorf("required field %s (%s) is missing value", field.Name, field.Options.EnvName)
 		}
 	}
 

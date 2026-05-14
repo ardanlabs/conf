@@ -1088,7 +1088,6 @@ func TestParseBoolFlag(t *testing.T) {
 		},
 	}
 	for _, tt := range tests {
-		tt := tt
 
 		t.Run(tt.name, func(t *testing.T) {
 			tmpArgs := os.Args
@@ -1276,7 +1275,6 @@ func TestYAML(t *testing.T) {
 		}
 	}
 }
-
 
 func TestMapTraversal(t *testing.T) {
 	yamlLabels := []byte(`

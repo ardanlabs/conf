@@ -35,7 +35,7 @@ func WithReader(r io.Reader) YAML {
 }
 
 // Process performs the actual processing of the yaml.
-func (y YAML) Process(prefix string, cfg interface{}) error {
+func (y YAML) Process(prefix string, cfg any) error {
 	err := yaml.Unmarshal(y.data, cfg)
 	if err != nil {
 		return fmt.Errorf("unmarshal yaml: %w", err)

@@ -57,7 +57,8 @@ func WithParser(parser Parsers) ParseOption {
 // Parse parses the specified config struct. This function will
 // apply the defaults first and then apply environment variables and
 // command line argument overrides to the struct. ErrHelpWanted is
-// returned when the --help or --version are detected.
+// returned when --help is detected and ErrVersionWanted when --version
+// is detected.
 //
 // For backward compatibility, parsers can be passed directly. However,
 // the preferred approach is to use ParseWithOptions with WithParser().
@@ -72,8 +73,8 @@ func Parse(prefix string, cfg any, parsers ...Parsers) (string, error) {
 
 // ParseWithOptions parses the specified config struct with additional parsing options.
 // This function will apply the defaults first and then apply environment variables and
-// command line argument overrides to the struct. ErrHelpWanted is returned when the
-// --help or --version are detected.
+// command line argument overrides to the struct. ErrHelpWanted is returned when
+// --help is detected and ErrVersionWanted when --version is detected.
 //
 // Options can be provided to customize parsing behavior:
 //   - conf.WithStrictFlags(): Return an error for unrecognized command-line flags
